@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
-#include "tile.h"
+// TODO: add tile.h
+// #include "tile.h"
 
 typedef struct Gpkg
 {
