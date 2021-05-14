@@ -1,8 +1,7 @@
 #include "statement.h"
 
-char *executeStatement(sqlite3 *db, char *query)
+sqlite3_stmt *prepareStatement(sqlite3 *db, char *query)
 {
-    unsigned char *res = NULL;
     sqlite3_stmt *stmt;
 
     int rc = sqlite3_prepare_v2(db, query, -1, &stmt, 0);
@@ -13,7 +12,20 @@ char *executeStatement(sqlite3 *db, char *query)
         return NULL;
     }
 
-    rc = sqlite3_step(stmt);
+    return stmt;
+}
+
+void finalizeStatement(sqlite3_stmt *stmt)
+{
+    sqlite3_finalize(stmt);
+}
+
+char *executeStatementSingleColResult(sqlite3 *db, char *query)
+{
+    unsigned char *res = NULL;
+    sqlite3_stmt *stmt = prepareStatement(db, query);
+
+    int rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW)
     {
         res = strdup(sqlite3_column_text(stmt, 0));

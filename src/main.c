@@ -5,10 +5,10 @@
 
 int main(int argc, char **argv)
 {
-    // Require input of 2 paths (base and new gpkg)
+    // Require input of 2 paths (base and new gpkg) and wanted batch size
     if (argc != 4)
     {
-        printf("Usage: a.out <path_to_base_gpkg> <path_to_new_gpkg> <batch_size>\n");
+        printf("Usage: %s <path_to_base_gpkg> <path_to_new_gpkg> <batch_size>\n", argv[0]);
         exit(-1);
     }
 
