@@ -2,41 +2,25 @@
 
 #define MIN_ZOOM_QUERY "SELECT MIN(zoom_level) FROM gpkg_tile_matrix"
 #define MAX_ZOOM_QUERY "SELECT MAX(zoom_level) FROM gpkg_tile_matrix"
+#define CACHE_NAME_QUERY "SELECT table_name FROM gpkg_contents"
 
-char *executeStatement(Gpkg *gpkg, char *query)
+void readTileCacheLevel(Gpkg *gpkg)
 {
-    unsigned char *res = NULL;
-    sqlite3_stmt *stmt;
-
-    int rc = sqlite3_prepare_v2(gpkg->db, query, -1, &stmt, 0);
-    if (rc != SQLITE_OK)
-    {
-        fprintf(stderr, "Failed to execute query: %s, error message: %s\n", query, sqlite3_errmsg(gpkg->db));
-        sqlite3_close(gpkg->db);
-        return NULL;
-    }
-
-    rc = sqlite3_step(stmt);
-    if (rc == SQLITE_ROW)
-    {
-        res = strdup(sqlite3_column_text(stmt, 0));
-        printf("%s\n", sqlite3_column_text(stmt, 0));
-    }
-
-    sqlite3_finalize(stmt);
-    return res;
+    const char *tileCache = executeStatementSingleColResult(gpkg->db, CACHE_NAME_QUERY);
+    // TODO: check if failed
+    gpkg->tileCache = strdup(tileCache);
 }
 
 void readMinZoomLevel(Gpkg *gpkg)
 {
-    const char *minZoom = executeStatement(gpkg, MIN_ZOOM_QUERY);
+    const char *minZoom = executeStatementSingleColResult(gpkg->db, MIN_ZOOM_QUERY);
     // TODO: check if failed
     gpkg->minZoom = atoi(minZoom);
 }
 
 void readMaxZoomLevel(Gpkg *gpkg)
 {
-    const char *maxZoom = executeStatement(gpkg, MAX_ZOOM_QUERY);
+    const char *maxZoom = executeStatementSingleColResult(gpkg->db, MAX_ZOOM_QUERY);
     // TODO: check if failed
     gpkg->maxZoom = atoi(maxZoom);
 }
@@ -51,12 +35,13 @@ void openGpkg(Gpkg *gpkg)
     }
 }
 
-struct Gpkg *readGpkgInfo(char *path)
+Gpkg *readGpkgInfo(char *path)
 {
-    struct Gpkg *gpkg = (struct Gpkg *)malloc(sizeof(struct Gpkg));
+    Gpkg *gpkg = (Gpkg *)malloc(sizeof(Gpkg));
     gpkg->path = path;
 
     openGpkg(gpkg);
+    readTileCacheLevel(gpkg);
     readMinZoomLevel(gpkg);
     readMaxZoomLevel(gpkg);
 
@@ -66,6 +51,7 @@ struct Gpkg *readGpkgInfo(char *path)
 void closeGpkg(Gpkg *gpkg)
 {
     sqlite3_close(gpkg->db);
+    free(gpkg);
 }
 
 void printGpkgInfo(Gpkg *gpkg)
