@@ -5,21 +5,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
-// TODO: add tile.h
-// #include "tile.h"
+#include "statement.h"
 
 typedef struct Gpkg
 {
     char *path;
     sqlite3 *db;
+    char *tileCache;
     int minZoom;
     int maxZoom;
     int current;
 } Gpkg;
 
-struct Gpkg *readGpkgInfo(char *path);
+Gpkg *readGpkgInfo(char *path);
 void closeGpkg(Gpkg *gpkg);
-struct Tile *getNextBatch(Gpkg *gpkg);
 void printGpkgInfo(Gpkg *gpkg);
 
 #endif // GPKG_H_
