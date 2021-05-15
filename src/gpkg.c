@@ -17,11 +17,22 @@ typedef struct TileMatrix
     double pixleYSize;
 } TileMatrix;
 
-char *getTileInsertQuery(char *tileCache, Tile *tile)
+void insertTile(sqlite3 *db, char *tileCache, Tile *tile)
 {
-    char *sql = (char *)malloc(50000 * sizeof(char));
-    sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (%d, %d, %d, x'%s')", tileCache, tile->z, tile->x, tile->y, tile->blob);
-    return sql;
+    char *tileInsertQuery = (char *)malloc(50000 * sizeof(char));
+    sprintf(tileInsertQuery, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)", tileCache);
+    // char *sql = "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)";
+    // return sql;
+
+    // char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
+    sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
+    sqlite3_bind_int(stmt, 1, tile->z);
+    sqlite3_bind_int(stmt, 2, tile->x);
+    sqlite3_bind_int(stmt, 3, tile->y);
+    sqlite3_bind_blob(stmt, 4, tile->blob, strlen(tile->blob), SQLITE_TRANSIENT);
+    executeStatementSingleColResult(db, tileInsertQuery);
+    free(tileInsertQuery);
+    finalizeStatement(stmt);
 }
 
 char *getTileMatrixInsertQuery(char *tileCache, TileMatrix *tileMatrix)
@@ -111,11 +122,48 @@ void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
     for (int i = 0; i < tileBatch->size; i++)
     {
         Tile *tile = getNextTile(tileBatch);
-        char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
-        sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
-        executeStatementSingleColResult(db, tileInsertQuery);
-        free(tileInsertQuery);
-        finalizeStatement(stmt);
+
+        Tile *baseTile = getTile(db, tileCache, tile->z, tile->x, tile->y);
+        // printTile(baseTile);
+
+        // Merge tiles if tile exists in base gpkg
+        if (baseTile->blob != NULL)
+        {
+            char *pythonMerge = (char *)malloc(100000 * sizeof(char));
+            sprintf(pythonMerge, "python3 /home/shimon/Documents/gpkg-merger/src/merge.py %s %s", baseTile->blob, tile->blob);
+            FILE *fp = popen(pythonMerge, "r");
+
+            if (fp == NULL)
+            {
+                printf("Failed to run merge command");
+                exit(1);
+            }
+
+            char combinedBlob[100000];
+            // fgets(combinedBlob, sizeof(combinedBlob), fp);
+
+            while (fgets(combinedBlob, sizeof(combinedBlob), fp) != NULL)
+                ;
+
+            // printf("%s\n", combinedBlob);
+            free(tile->blob);
+            tile->blob = combinedBlob;
+            pclose(fp);
+        }
+
+        printf("yessss %s\n", tile->blob);
+
+        insertTile(db, tileCache, tile);
+
+        // char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
+        // sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
+        // sqlite3_bind_int(stmt, 1, tile->z);
+        // sqlite3_bind_int(stmt, 2, tile->x);
+        // sqlite3_bind_int(stmt, 3, tile->y);
+        // sqlite3_bind_blob(stmt, 4, tile->blob, strlen(tile->blob), SQLITE_TRANSIENT);
+        // executeStatementSingleColResult(db, tileInsertQuery);
+        // free(tileInsertQuery);
+        // finalizeStatement(stmt);
     }
 }
 
