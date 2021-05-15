@@ -1,35 +1,70 @@
-#include <string.h>
-#include "MagickWand/MagickWand.h"
+#include "merge.h"
 
-int main(int argc, const char *argv[])
+
+#define ThrowWandException(wand)                                                          \
+    {                                                                                     \
+        char                                                                              \
+            *description;                                                                 \
+                                                                                          \
+        ExceptionType                                                                     \
+            severity;                                                                     \
+                                                                                          \
+        description = MagickGetException(wand, &severity);                                \
+        (void)fprintf(stderr, "%s %s %lu, reason: %s\n", GetMagickModule(), description); \
+        description = (char *)MagickRelinquishMemory(description);                        \
+        exit(-1);                                                                         \
+    }
+
+unsigned char *hexToByteArray(unsigned char *hex, size_t length)
 {
-    MagickWand
-        *wand1,
-        *wand2,
-        *wand3,
-        *result;
+    char *position = hex;
+    unsigned char *byteArray = (unsigned char *)malloc(((length / 2) + 1) * sizeof(unsigned char));
+
+    for (size_t count = 0; count < length / 2; count++)
+    {
+        sscanf(position, "%2hhx", &byteArray[count]);
+        position += 2;
+    }
+
+    return byteArray;
+}
+
+void merge(char *hexValue, char *hexValue2, char *filename) {
+    MagickWand *wand1, *wand2;
+    MagickBooleanType status;
 
     MagickWandGenesis();
+
     wand1 = NewMagickWand();
     wand2 = NewMagickWand();
 
-    MagickReadImage(wand1, "/home/roees/Desktop/img1.png");
-    MagickReadImage(wand2, "/home/roees/Desktop/img2.jpg");
+    status = MagickReadImageBlob(wand1, hexToByteArray(hexValue, strlen(hexValue)), strlen(hexValue));
 
-    // convert one.png two.png +clone -combine displaceMask.png
-    wand3 = CloneMagickWand(wand2);
-    MagickAddImage(wand1, wand2);
-    MagickAddImage(wand1, wand3);
+    if (status == MagickFalse)
+        ThrowWandException(wand1);
+
+    status = MagickReadImageBlob(wand2, hexToByteArray(hexValue2, strlen(hexValue2)), strlen(hexValue2));
+
+    if (status == MagickFalse)
+        ThrowWandException(wand2);
+
+    status = MagickAddImage(wand1, wand2);
+
+    if (status == MagickFalse)
+        ThrowWandException(wand1);
+
     MagickSetFirstIterator(wand1);
-    result = MagickCombineImages(wand1, MagickGetImageColorspace(wand1));
-    wand3 = CloneMagickWand(wand1);
-    MagickWriteImage(result,"merge.png");
+    status = MagickCompositeImage(wand1, wand2, OverlayCompositeOp, MagickFalse, 0, 0);
+
+    if (status == MagickFalse)
+        ThrowWandException(wand1);
+
+    status = MagickWriteImage(wand1, filename);
+
+    if (status == MagickFalse)
+        ThrowWandException(wand1);
 
     wand1 = DestroyMagickWand(wand1);
     wand2 = DestroyMagickWand(wand2);
-    wand3 = DestroyMagickWand(wand3);
-    result = DestroyMagickWand(result);
     MagickWandTerminus();
-
-    return 0;
 }
