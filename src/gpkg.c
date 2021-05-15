@@ -3,6 +3,41 @@
 #define MIN_ZOOM_QUERY "SELECT MIN(zoom_level) FROM gpkg_tile_matrix"
 #define MAX_ZOOM_QUERY "SELECT MAX(zoom_level) FROM gpkg_tile_matrix"
 #define CACHE_NAME_QUERY "SELECT table_name FROM gpkg_contents"
+#define TILE_MATRIX_QUERY "SELECT * FROM gpkg_tile_matrix"
+
+typedef struct TileMatrix
+{
+    char *tableName;
+    int zoomLevel;
+    int matrixWidth;
+    int matrixHeight;
+    int tileWidth;
+    int tileHeight;
+    double pixleXSize;
+    double pixleYSize;
+} TileMatrix;
+
+char *getTileInsertQuery(char *tileCache, Tile *tile)
+{
+    char *sql = (char *)malloc(50000 * sizeof(char));
+    sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (%d, %d, %d, x'%s')", tileCache, tile->z, tile->x, tile->y, tile->blob);
+    return sql;
+}
+
+char *getTileMatrixInsertQuery(char *tileCache, TileMatrix *tileMatrix)
+{
+    char *sql = (char *)malloc(500 * sizeof(char));
+    sprintf(sql, "REPLACE INTO gpkg_tile_matrix (table_name, zoom_level, matrix_width, matrix_height, tile_width, tile_height, pixel_x_size, pixel_y_size) VALUES ('%s', %d, %d, %d, %d, %d, %f, %f)",
+            tileCache, tileMatrix->zoomLevel, tileMatrix->matrixWidth, tileMatrix->matrixHeight, tileMatrix->tileWidth, tileMatrix->tileHeight, tileMatrix->pixleXSize, tileMatrix->pixleYSize);
+    return sql;
+}
+
+// char *getBatchInsertQuery(char *tileCache, int currentOffset, int batchSize)
+// {
+//     char *sql = (char *)malloc(200 * sizeof(char));
+//     sprintf(sql, "SELECT zoom_level, tile_column, tile_row, hex(tile_data) FROM %s limit %d offset %d", tileCache, batchSize, currentOffset);
+//     return sql;
+// }
 
 void readTileCacheLevel(Gpkg *gpkg)
 {
@@ -46,6 +81,55 @@ Gpkg *readGpkgInfo(char *path)
     readMaxZoomLevel(gpkg);
 
     return gpkg;
+}
+
+void copyTileMatrix(Gpkg *baseGpkg, Gpkg *newGpkg)
+{
+    sqlite3_stmt *stmt = prepareStatement(newGpkg->db, TILE_MATRIX_QUERY);
+    int rc = sqlite3_step(stmt);
+    do
+    {
+        TileMatrix *tileMatrix = (TileMatrix *)malloc(sizeof(TileMatrix));
+        tileMatrix->zoomLevel = sqlite3_column_int(stmt, 1);
+        tileMatrix->matrixWidth = sqlite3_column_int(stmt, 2);
+        tileMatrix->matrixHeight = sqlite3_column_int(stmt, 3);
+        tileMatrix->tileWidth = sqlite3_column_int(stmt, 4);
+        tileMatrix->tileHeight = sqlite3_column_int(stmt, 5);
+        tileMatrix->pixleXSize = sqlite3_column_double(stmt, 6);
+        tileMatrix->pixleYSize = sqlite3_column_double(stmt, 7);
+
+        char *query = getTileMatrixInsertQuery(baseGpkg->tileCache, tileMatrix);
+        executeStatementSingleColResult(baseGpkg->db, query);
+
+        free(tileMatrix);
+        rc = sqlite3_step(stmt);
+    } while (rc == SQLITE_ROW);
+}
+
+void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
+{
+    for (int i = 0; i < tileBatch->size; i++)
+    {
+        Tile *tile = getNextTile(tileBatch);
+        char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
+        sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
+        executeStatementSingleColResult(db, tileInsertQuery);
+        free(tileInsertQuery);
+        finalizeStatement(stmt);
+    }
+}
+
+void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
+{
+    TileBatch *tileBatch;
+    sqlite3 *baseDb = baseGpkg->db;
+    copyTileMatrix(baseGpkg, newGpkg);
+
+    do
+    {
+        tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
+        insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+    } while (tileBatch->current != tileBatch->size);
 }
 
 void closeGpkg(Gpkg *gpkg)
