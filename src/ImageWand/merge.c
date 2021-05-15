@@ -1,5 +1,5 @@
 #include "merge.h"
-
+#include <string.h>
 
 #define ThrowWandException(wand)                                                          \
     {                                                                                     \
@@ -18,9 +18,10 @@
 unsigned char *hexToByteArray(unsigned char *hex, size_t length)
 {
     char *position = hex;
-    unsigned char *byteArray = (unsigned char *)malloc(((length / 2) + 1) * sizeof(unsigned char));
+    size_t byteArrayLength = length / 2;
+    unsigned char *byteArray = (unsigned char *)malloc((byteArrayLength + 1) * sizeof(unsigned char));
 
-    for (size_t count = 0; count < length / 2; count++)
+    for (size_t count = 0; count < byteArrayLength; count++)
     {
         sscanf(position, "%2hhx", &byteArray[count]);
         position += 2;
@@ -29,7 +30,8 @@ unsigned char *hexToByteArray(unsigned char *hex, size_t length)
     return byteArray;
 }
 
-void merge(char *hexValue, char *hexValue2, char *filename) {
+unsigned char *merge(char *hexValue, char *hexValue2, char *filename)
+{
     MagickWand *wand1, *wand2;
     MagickBooleanType status;
 
@@ -59,7 +61,9 @@ void merge(char *hexValue, char *hexValue2, char *filename) {
     if (status == MagickFalse)
         ThrowWandException(wand1);
 
-    status = MagickWriteImage(wand1, filename);
+    size_t length;
+    unsigned char *blob = MagickGetImageBlob(wand1, &length);
+    unsigned char *pos = (unsigned char *)malloc((length * 2 + 1) * sizeof(unsigned char));
 
     if (status == MagickFalse)
         ThrowWandException(wand1);
@@ -67,4 +71,11 @@ void merge(char *hexValue, char *hexValue2, char *filename) {
     wand1 = DestroyMagickWand(wand1);
     wand2 = DestroyMagickWand(wand2);
     MagickWandTerminus();
+
+    int i;
+    for (i = 0; i < length; i++) {
+        sprintf(pos + (i * 2), "%02x", blob[i]);
+    }
+
+    return pos;
 }
