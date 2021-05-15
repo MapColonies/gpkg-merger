@@ -27,7 +27,7 @@ char *getTileInsertQuery(char *tileCache, Tile *tile)
 char *getTileMatrixInsertQuery(char *tileCache, TileMatrix *tileMatrix)
 {
     char *sql = (char *)malloc(500 * sizeof(char));
-    sprintf(sql, "REPLACE INTO gpkg_tile_matrix (table_name, zoom_level, matrix_width, matrix_height, tile_width, tile_height, pixel_x_size, pixel_y_size) VALUES ('%s', %d, %d, %d, %d, %d, %f, %f)",
+    sprintf(sql, "REPLACE INTO gpkg_tile_matrix (table_name, zoom_level, matrix_width, matrix_height, tile_width, tile_height, pixel_x_size, pixel_y_size) VALUES ('%s', %d, %d, %d, %d, %d, %0.20f, %0.20f)",
             tileCache, tileMatrix->zoomLevel, tileMatrix->matrixWidth, tileMatrix->matrixHeight, tileMatrix->tileWidth, tileMatrix->tileHeight, tileMatrix->pixleXSize, tileMatrix->pixleYSize);
     return sql;
 }
@@ -128,6 +128,7 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
     do
     {
         tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
+        // printBatch(tileBatch);
         insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
     } while (tileBatch->current != tileBatch->size);
 }
