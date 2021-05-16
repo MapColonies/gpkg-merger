@@ -1,5 +1,4 @@
 #include "merge.h"
-#include <string.h>
 
 #define ThrowWandException(wand)                                                          \
     {                                                                                     \
@@ -30,7 +29,7 @@ unsigned char *hexToByteArray(unsigned char *hex, size_t length)
     return byteArray;
 }
 
-unsigned char *merge(char *hexValue, char *hexValue2, char *filename)
+unsigned char *merge(char *hexValue, char *hexValue2)
 {
     MagickWand *wand1, *wand2;
     MagickBooleanType status;
@@ -56,7 +55,7 @@ unsigned char *merge(char *hexValue, char *hexValue2, char *filename)
         ThrowWandException(wand1);
 
     MagickSetFirstIterator(wand1);
-    status = MagickCompositeImage(wand1, wand2, OverlayCompositeOp, MagickFalse, 0, 0);
+    status = MagickCompositeImage(wand1, wand2, OverCompositeOp, MagickFalse, 0, 0);
 
     if (status == MagickFalse)
         ThrowWandException(wand1);
@@ -73,7 +72,8 @@ unsigned char *merge(char *hexValue, char *hexValue2, char *filename)
     MagickWandTerminus();
 
     int i;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < length; i++)
+    {
         sprintf(pos + (i * 2), "%02x", blob[i]);
     }
 

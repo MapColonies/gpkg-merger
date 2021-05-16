@@ -22,7 +22,7 @@ TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current
  * @param tileBatch Batch object to get the tile from
  * @return Tile* 
  */
-Tile *getNextTile(TileBatch *TileBatch);
+Tile *getNextTile(TileBatch *tileBatch);
 
 void printBatch(TileBatch *batch);
 void freeBatch(TileBatch *batch);

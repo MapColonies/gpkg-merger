@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
+#include "tileBatch.h"
 #include "statement.h"
+#include "ImageWand/merge.h"
 
 typedef struct Gpkg
 {
@@ -20,5 +22,6 @@ typedef struct Gpkg
 Gpkg *readGpkgInfo(char *path);
 void closeGpkg(Gpkg *gpkg);
 void printGpkgInfo(Gpkg *gpkg);
+void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize);
 
 #endif // GPKG_H_

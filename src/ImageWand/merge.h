@@ -5,6 +5,6 @@
 #include "MagickWand/MagickWand.h"
 
 void ThrowWandException(MagickWand *);
-unsigned char *merge(/* char *, char *, char * */);
+unsigned char *merge(char *hexValue, char *hexValue2);
 
 #endif // MERGE_H

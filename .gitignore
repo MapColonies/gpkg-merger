@@ -54,3 +54,5 @@ dkms.conf
 
 # Compile and Run
 compileAndRun.sh
+*.gpkg
+*.GPKG
