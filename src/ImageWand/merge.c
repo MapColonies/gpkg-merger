@@ -55,7 +55,7 @@ unsigned char *merge(char *hexValue, char *hexValue2)
         ThrowWandException(wand1);
 
     MagickSetFirstIterator(wand1);
-    status = MagickCompositeImage(wand1, wand2, OverlayCompositeOp, MagickFalse, 0, 0);
+    status = MagickCompositeImage(wand1, wand2, OverCompositeOp, MagickFalse, 0, 0);
 
     if (status == MagickFalse)
         ThrowWandException(wand1);
