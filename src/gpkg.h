@@ -7,6 +7,7 @@
 #include <sqlite3.h>
 #include "tileBatch.h"
 #include "statement.h"
+#include "ImageWand/merge.h"
 
 typedef struct Gpkg
 {

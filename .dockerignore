@@ -1,0 +1,7 @@
+**/*.gpkg
+**/*.GPKG
+**/*.png
+**/*.jpeg
+**/*.vscode
+**/*.ghc
+**/*.out

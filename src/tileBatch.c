@@ -53,7 +53,7 @@ TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current
 {
     TileBatch *tileBatch = (TileBatch *)malloc(sizeof(TileBatch));
     Tile **tiles = getNextBatch(db, tileCache, batchSize, current);
-    size_t i = 0;
+    int i = 0;
 
     tileBatch->tiles = tiles;
 

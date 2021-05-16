@@ -30,6 +30,11 @@ char *executeStatementSingleColResult(sqlite3 *db, char *query)
     {
         res = strdup(sqlite3_column_text(stmt, 0));
     }
+    else if (rc != SQLITE_DONE && rc != SQLITE_OK)
+    {
+        printf("Error in sqlite, code: %d\n", rc);
+        printf("Error in sqlite: %s\n", sqlite3_errmsg(db));
+    }
 
     sqlite3_finalize(stmt);
     return res;
