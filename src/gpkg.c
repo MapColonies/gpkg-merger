@@ -39,6 +39,13 @@ int min(double num1, double num2)
     return (num1 > num2) ? num2 : num1;
 }
 
+char *getAddIndexQuery(char *tileCache)
+{
+    char *sql = (char *)malloc(300 * sizeof(char));
+    sprintf(sql, "CREATE UNIQUE INDEX IF NOT EXISTS index_tiles on %s (zoom_level, tile_row, tile_column)", tileCache);
+    return sql;
+}
+
 char *getTileInsertQuery(char *tileCache, Tile *tile)
 {
     char *sql = (char *)malloc(1000000 * sizeof(char));
@@ -101,6 +108,12 @@ void insertTile(sqlite3 *db, char *tileCache, Tile *tile)
     executeStatementSingleColResult(db, tileInsertQuery);
     free(tileInsertQuery);
     finalizeStatement(stmt);
+}
+
+void addIndex(sqlite3 *db, char *tileCache)
+{
+    char *query = getAddIndexQuery(tileCache);
+    executeStatementSingleColResult(db, query);
 }
 
 char *getTileMatrixInsertQuery(char *tileCache, TileMatrix *tileMatrix)
@@ -280,6 +293,9 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
         newGpkg->current = count;
         printf("Merged %d/%s tiles\n", count, countAll);
     } while (tileBatch->size != 0);
+
+    // Add tile index
+    addIndex(baseDb, baseGpkg->tileCache);
 }
 
 void closeGpkg(Gpkg *gpkg)
