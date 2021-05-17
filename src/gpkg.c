@@ -319,6 +319,7 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
 void closeGpkg(Gpkg *gpkg)
 {
     sqlite3_close(gpkg->db);
+    free(gpkg->path);
     free(gpkg->tileCache);
     free(gpkg);
 }

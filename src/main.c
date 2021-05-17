@@ -39,9 +39,6 @@ int main(int argc, char **argv)
     Gpkg *baseGpkg = readGpkgInfo(baseGpkgPath);
     Gpkg *newGpkg = readGpkgInfo(newGpkgPath);
 
-    free(baseGpkgPath);
-    free(newGpkgPath);
-
     // Merge gpkgs
     mergeGpkgs(baseGpkg, newGpkg, batchSize);
 
