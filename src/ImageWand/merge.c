@@ -25,6 +25,7 @@ unsigned char *hexToByteArray(unsigned char *hex, size_t length)
         sscanf(position, "%2hhx", &byteArray[count]);
         position += 2;
     }
+    byteArray[byteArrayLength] = '0';
 
     return byteArray;
 }
@@ -39,12 +40,16 @@ unsigned char *merge(char *hexValue, char *hexValue2)
     wand1 = NewMagickWand();
     wand2 = NewMagickWand();
 
-    status = MagickReadImageBlob(wand1, hexToByteArray(hexValue, strlen(hexValue)), strlen(hexValue));
+    unsigned char *byteArr = hexToByteArray(hexValue, strlen(hexValue));
+    status = MagickReadImageBlob(wand1, byteArr, strlen(hexValue) / 2 + 1);
+    free(byteArr);
 
     if (status == MagickFalse)
         ThrowWandException(wand1);
 
-    status = MagickReadImageBlob(wand2, hexToByteArray(hexValue2, strlen(hexValue2)), strlen(hexValue2));
+    byteArr = hexToByteArray(hexValue2, strlen(hexValue2));
+    status = MagickReadImageBlob(wand2, byteArr, strlen(hexValue2) / 2 + 1);
+    free(byteArr);
 
     if (status == MagickFalse)
         ThrowWandException(wand2);
@@ -76,6 +81,7 @@ unsigned char *merge(char *hexValue, char *hexValue2)
     {
         sprintf(pos + (i * 2), "%02x", blob[i]);
     }
+    free(blob);
 
     return pos;
 }

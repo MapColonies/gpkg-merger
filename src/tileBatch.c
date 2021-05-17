@@ -24,7 +24,7 @@ Tile *executeTileStatement(sqlite3_stmt *stmt)
 
 char *getBatchSelectQuery(char *tileCache, int currentOffset, int batchSize)
 {
-    char *sql = (char *)malloc(200 * sizeof(char));
+    char *sql = (char *)malloc(500 * sizeof(char));
     sprintf(sql, "SELECT zoom_level, tile_column, tile_row, hex(tile_data) FROM %s limit %d offset %d", tileCache, batchSize, currentOffset);
     return sql;
 }
@@ -32,16 +32,16 @@ char *getBatchSelectQuery(char *tileCache, int currentOffset, int batchSize)
 Tile **getNextBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
 {
     Tile **tiles = (Tile **)malloc(batchSize * sizeof(Tile *));
-    int i = -1;
+    int i = 0;
 
     char *batchSelectQuery = getBatchSelectQuery(tileCache, current, batchSize);
     sqlite3_stmt *stmt = prepareStatement(db, batchSelectQuery);
 
     do
     {
-        i++;
         tiles[i] = executeTileStatement(stmt);
-    } while (tiles[i] != NULL);
+        i++;
+    } while (i < batchSize && tiles[i - 1] != NULL);
 
     free(batchSelectQuery);
     finalizeStatement(stmt);
@@ -64,6 +64,7 @@ TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current
     }
 
     tileBatch->size = i;
+    tileBatch->current = 0;
 
     return tileBatch;
 }
@@ -84,7 +85,7 @@ Tile *getNextTile(TileBatch *tileBatch)
 void printBatch(TileBatch *batch)
 {
     Tile **tiles = batch->tiles;
-    for (size_t i = 0; i < batch->size; i++)
+    for (int i = 0; i < batch->size; i++)
     {
         printTile(tiles[i]);
     }
@@ -94,7 +95,7 @@ void freeBatch(TileBatch *batch)
 {
     // Free each tile in the batch
     Tile **tiles = batch->tiles;
-    for (size_t i = 0; i < batch->size; i++)
+    for (int i = 0; i < batch->size; i++)
     {
         freeTile(tiles[i]);
     }

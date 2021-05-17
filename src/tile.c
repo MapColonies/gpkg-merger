@@ -22,6 +22,7 @@ Tile *getTile(sqlite3 *db, char *tileCache, int z, int x, int y)
 {
     char *query = getTileSelectQuery(tileCache, z, x, y);
     char *blob = executeStatementSingleColResult(db, query);
+    free(query);
     Tile *tile = createTile(z, x, y, blob);
     return tile;
 }
