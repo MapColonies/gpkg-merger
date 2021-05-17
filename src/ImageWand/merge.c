@@ -35,7 +35,7 @@ unsigned char *merge(char *hexValue, char *hexValue2)
     MagickWand *wand1, *wand2;
     MagickBooleanType status;
 
-    MagickWandGenesis();
+    // MagickWandGenesis();
 
     wand1 = NewMagickWand();
     wand2 = NewMagickWand();
@@ -74,7 +74,7 @@ unsigned char *merge(char *hexValue, char *hexValue2)
 
     wand1 = DestroyMagickWand(wand1);
     wand2 = DestroyMagickWand(wand2);
-    MagickWandTerminus();
+    // MagickWandTerminus();
 
     int i;
     for (i = 0; i < length; i++)

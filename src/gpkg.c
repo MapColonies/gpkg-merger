@@ -30,6 +30,11 @@ typedef struct Extent
     double maxY;
 } Extent;
 
+// pthread_mutex_t getTileLock;
+pthread_mutex_t insertTileLock;
+int countAll = 0;
+int countTiles = 0;
+
 int max(double num1, double num2)
 {
     return (num1 > num2) ? num1 : num2;
@@ -235,7 +240,7 @@ void copyTileMatrix(Gpkg *baseGpkg, Gpkg *newGpkg)
     } while (rc == SQLITE_ROW);
 }
 
-void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
+void mergeTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
 {
     for (int i = 0; i < tileBatch->size; i++)
     {
@@ -245,90 +250,123 @@ void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
         // Merge tiles if tile exists in base gpkg
         if (baseTile != NULL)
         {
-            // char *pythonMerge = (char *)malloc(10000000 * sizeof(char));
-            // sprintf(pythonMerge, "python3 ./merge.py %s %s", baseTile->blob, tile->blob);
-            // FILE *fp = popen(pythonMerge, "r");
-
-            // if (fp == NULL)
-            // {
-            //     printf("Failed to run merge command");
-            //     exit(1);
-            // }
-
-            // exit(-1);
-
-            // printf("%s\n", pythonMerge);
-            // exit(-1);
-
-            // char combinedBlob[1000000];
-            // fgets(combinedBlob, sizeof(combinedBlob), fp);
-
-            // while (fgets(combinedBlob, sizeof(combinedBlob), fp) != NULL)
-            //     ;
-
-            // printf("%s\n", combinedBlob);
             char *blob = merge(baseTile->blob, tile->blob);
             free(tile->blob);
-            // tile->blob = strdup(pythonMerge);
-            // tile->blob = combinedBlob;
             tile->blob = blob;
             tile->blobSize = strlen(blob);
-            // pclose(fp);
             freeTile(baseTile);
         }
 
-        // printf("yessss %s\n", tile->blob);
-
-        insertTile(db, tileCache, tile);
-
-        // if (baseTile != NULL)
-        // {
-        //     freeTile(baseTile);
-        // }
-
-        // char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
-        // sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
-        // sqlite3_bind_int(stmt, 1, tile->z);
-        // sqlite3_bind_int(stmt, 2, tile->x);
-        // sqlite3_bind_int(stmt, 3, tile->y);
-        // sqlite3_bind_blob(stmt, 4, tile->blob, strlen(tile->blob), SQLITE_TRANSIENT);
-        // executeStatementSingleColResult(db, tileInsertQuery);
-        // free(tileInsertQuery);
-        // finalizeStatement(stmt);
+        // insertTile(db, tileCache, tile);
     }
+    tileBatch->current = 0;
+}
+
+void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
+{
+    for (int i = 0; i < tileBatch->size; i++)
+    {
+        Tile *tile = getNextTile(tileBatch);
+        insertTile(db, tileCache, tile);
+    }
+}
+
+void printFinishedBatch()
+{
+    printf("Merged %d/%d tiles\n", countTiles, countAll);
+}
+
+void work(void **args)
+{
+    Gpkg *baseGpkg = (Gpkg *)args[0];
+    // Gpkg *newGpkg = (Gpkg *)args[1];
+    TileBatch *tileBatch = (TileBatch *)args[1];
+
+    sqlite3 *baseDb = baseGpkg->db;
+    // sqlite3 *newDb = newGpkg->db;
+    int count = 0;
+    int size = 0;
+
+    // Get tile batch
+    // pthread_mutex_lock(&getTileLock);
+    // tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
+    // size = tileBatch->size;
+    // count += size;
+    // newGpkg->current = count;
+    // pthread_mutex_unlock(&getTileLock);
+
+    mergeTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+
+    // Insert batch
+    pthread_mutex_lock(&insertTileLock);
+    // printf("Hello\n");
+    insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+    countTiles = countTiles + tileBatch->size;
+    // printFinishedBatch();
+    pthread_mutex_unlock(&insertTileLock);
+
+    freeBatch(tileBatch);
 }
 
 void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
 {
-    TileBatch *tileBatch;
+    // TileBatch *tileBatch;
     sqlite3 *baseDb = baseGpkg->db;
     sqlite3 *newDb = newGpkg->db;
     copyTileMatrix(baseGpkg, newGpkg);
     updateExtent(baseGpkg, newGpkg);
 
     char *tileCountQuery = getTileCountQuery(newGpkg->tileCache);
-    char *countAll = executeStatementSingleColResult(newDb, tileCountQuery);
+    char *countAllString = executeStatementSingleColResult(newDb, tileCountQuery);
+    countAll = atoi(countAllString);
     free(tileCountQuery);
-    printf("Working on merging %s tile into base gpkg\n", countAll);
+    printf("Working on merging %d tile into base gpkg\n", countAll);
     int count = 0;
     int size = 0;
 
-    do
-    {
-        printf("Current %d\n", newGpkg->current);
-        tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
-        size = tileBatch->size;
-        insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+    // pthread_mutex_init(&getTileLock, NULL);
+    pthread_mutex_init(&insertTileLock, NULL);
+    tpool_t *threadPool = tpool_create(5);
 
+    int amount = countAll / batchSize;
+    if (countAll % batchSize != 0)
+    {
+        amount++;
+    }
+
+    for (int i = 0; i < amount; i++)
+    {
+        TileBatch *tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
+        size = tileBatch->size;
         count += size;
         newGpkg->current = count;
-        freeBatch(tileBatch);
-        printf("Merged %d/%s tiles\n", count, countAll);
-    } while (size != 0);
+        // do
+        // {
+        void *args[] = {baseGpkg, tileBatch};
+        tpool_add_work(threadPool, work, args);
+        // printf("Current %d\n", newGpkg->current);
+        // tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
+        // size = tileBatch->size;
+        // mergeTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+        // insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+
+        // count += size;
+        // newGpkg->current = count;
+        // freeBatch(tileBatch);
+        // printf("Merged %d/%s tiles\n", count, countAll);
+        // } while (size != 0);
+    }
+
+    // printf("Hello\n");
+    tpool_wait(threadPool);
+    // printf("Hello\n");
+    tpool_destroy(threadPool);
+    // pthread_mutex_destroy(&getTileLock);
+    pthread_mutex_destroy(&insertTileLock);
 
     // Add tile index
     addIndex(baseDb, baseGpkg->tileCache);
-    free(countAll);
+    free(countAllString);
 }
 
 void closeGpkg(Gpkg *gpkg)

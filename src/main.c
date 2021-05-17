@@ -51,8 +51,10 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
+    MagickWandGenesis();
     // Merge gpkgs
     mergeGpkgs(baseGpkg, newGpkg, batchSize);
+    MagickWandTerminus();
 
     // Close gpkgs
     closeGpkg(baseGpkg);
