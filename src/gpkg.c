@@ -41,21 +41,23 @@ int min(double num1, double num2)
 
 char *getAddIndexQuery(char *tileCache)
 {
-    char *sql = (char *)malloc(300 * sizeof(char));
+    char *sql = (char *)malloc(500 * sizeof(char));
     sprintf(sql, "CREATE UNIQUE INDEX IF NOT EXISTS index_tiles on %s (zoom_level, tile_row, tile_column)", tileCache);
     return sql;
 }
 
 char *getTileInsertQuery(char *tileCache, Tile *tile)
 {
-    char *sql = (char *)malloc(1000000 * sizeof(char));
+    char *blobAllocation = getenv("BLOB_MEMORY_ALLOCATION");
+    int allocationSize = atoi(blobAllocation);
+    char *sql = (char *)malloc(allocationSize * sizeof(char));
     sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (%d, %d, %d, x'%s')", tileCache, tile->z, tile->x, tile->y, tile->blob);
     return sql;
 }
 
 char *getTileCountQuery(char *tileCache)
 {
-    char *sql = (char *)malloc(200 * sizeof(char));
+    char *sql = (char *)malloc(500 * sizeof(char));
     sprintf(sql, "SELECT COUNT(*) FROM %s", tileCache);
     return sql;
 }

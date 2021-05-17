@@ -56,3 +56,6 @@ dkms.conf
 compileAndRun.sh
 *.gpkg
 *.GPKG
+
+*.zip
+*.tar
