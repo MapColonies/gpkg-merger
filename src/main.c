@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     free(newGpkgPath);
 
     // Merge gpkgs
-    mergeGpkgs(baseGpkg, newGpkg, 1000);
+    mergeGpkgs(baseGpkg, newGpkg, batchSize);
 
     // Close gpkgs
     closeGpkg(baseGpkg);

@@ -99,6 +99,6 @@ void freeBatch(TileBatch *batch)
     {
         freeTile(tiles[i]);
     }
-
+    free(tiles);
     free(batch);
 }
