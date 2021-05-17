@@ -2,6 +2,7 @@
 #define STATEMENT_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
 
@@ -17,5 +18,7 @@ sqlite3_stmt *prepareStatement(sqlite3 *db, char *query);
 char *executeStatementSingleColResult(sqlite3 *db, char *query);
 
 void finalizeStatement(sqlite3_stmt *stmt);
+
+int getBlobSize(sqlite3 *db, char *tileCache, int z, int x, int y);
 
 #endif // STATEMENT_H_

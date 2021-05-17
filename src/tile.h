@@ -12,9 +12,10 @@ typedef struct Tile
     int x;
     int y;
     char *blob;
+    int blobSize;
 } Tile;
 
-Tile *createTile(int z, int x, int y, char *blob);
+Tile *createTile(int z, int x, int y, char *blob, int blobSize);
 
 /**
  * @brief Get a Tile object with the given z, x, y

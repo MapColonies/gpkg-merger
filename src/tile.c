@@ -8,13 +8,14 @@ char *getTileSelectQuery(char *tileCache, int z, int x, int y)
     return sql;
 }
 
-Tile *createTile(int z, int x, int y, char *blob)
+Tile *createTile(int z, int x, int y, char *blob, int blobSize)
 {
     Tile *tile = (Tile *)malloc(sizeof(Tile));
     tile->z = z;
     tile->x = x;
     tile->y = y;
     tile->blob = blob;
+    tile->blobSize = blobSize;
     return tile;
 }
 
@@ -23,7 +24,14 @@ Tile *getTile(sqlite3 *db, char *tileCache, int z, int x, int y)
     char *query = getTileSelectQuery(tileCache, z, x, y);
     char *blob = executeStatementSingleColResult(db, query);
     free(query);
-    Tile *tile = createTile(z, x, y, blob);
+
+    if (blob == NULL)
+    {
+        return NULL;
+    }
+
+    int blobSize = getBlobSize(db, tileCache, z, x, y);
+    Tile *tile = createTile(z, x, y, blob, blobSize);
     return tile;
 }
 
@@ -32,7 +40,8 @@ void printTile(Tile *tile)
     printf("z: %d\n", tile->z);
     printf("x: %d\n", tile->x);
     printf("y: %d\n", tile->y);
-    printf("blob: %s\n", tile->blob);
+    // printf("blob: %s\n", tile->blob);
+    printf("blob size: %d\n", tile->blobSize);
 }
 
 void freeTile(Tile *tile)

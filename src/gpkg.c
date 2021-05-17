@@ -4,6 +4,7 @@
 #define MAX_ZOOM_QUERY "SELECT MAX(zoom_level) FROM gpkg_tile_matrix"
 #define CACHE_NAME_QUERY "SELECT table_name FROM gpkg_contents"
 #define TILE_MATRIX_QUERY "SELECT * FROM gpkg_tile_matrix"
+#define BASE_ZOOM_QUERY "SELECT zoom_level FROM gpkg_tile_matrix where zoom_level=0 and matrix_width=1 and matrix_height=1"
 #define EXTENT_QUERY "SELECT min_x, min_y, max_x, max_y FROM gpkg_contents"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -48,9 +49,13 @@ char *getAddIndexQuery(char *tileCache)
 
 char *getTileInsertQuery(char *tileCache, Tile *tile)
 {
-    char *blobAllocation = getenv("BLOB_MEMORY_ALLOCATION");
-    int allocationSize = atoi(blobAllocation);
+    // char *blobAllocation = getenv("BLOB_MEMORY_ALLOCATION");
+    // int allocationSize = atoi(blobAllocation);
+
+    // We allocate 2 time the size of the blob because it has HEX representation, so it takes two times the size when represented as string
+    int allocationSize = tile->blobSize * 2 + 500;
     char *sql = (char *)malloc(allocationSize * sizeof(char));
+    // char *sql = (char *)malloc(allocationSize * sizeof(char));
     sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (%d, %d, %d, x'%s')", tileCache, tile->z, tile->x, tile->y, tile->blob);
     return sql;
 }
@@ -95,19 +100,10 @@ Extent *getExtent(sqlite3 *db)
 
 void insertTile(sqlite3 *db, char *tileCache, Tile *tile)
 {
-    // char *tileInsertQuery = (char *)malloc(100000000 * sizeof(char));
-    // sprintf(tileInsertQuery, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)", tileCache);
-    // // char *sql = "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES(?,?,?,?)";
-    // // return sql;
-
     char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
-    // printf("%s\n", tileInsertQuery);
     sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
-    // sqlite3_bind_int(stmt, 1, tile->z);
-    // sqlite3_bind_int(stmt, 2, tile->x);
-    // sqlite3_bind_int(stmt, 3, tile->y);
-    // sqlite3_bind_blob(stmt, 4, tile->blob, strlen(tile->blob), SQLITE_TRANSIENT);
     char *res = executeStatementSingleColResult(db, tileInsertQuery);
+
     free(tileInsertQuery);
     free(res);
     finalizeStatement(stmt);
@@ -177,6 +173,13 @@ void updateExtent(Gpkg *baseGpkg, Gpkg *newGpkg)
     free(newExtent);
 }
 
+void convertIfBase1ToBase2(Gpkg *gpkg)
+{
+    // TODO: convert
+    char *query = executeStatementSingleColResult(gpkg->db, BASE_ZOOM_QUERY);
+    free(query);
+}
+
 int openGpkg(Gpkg *gpkg)
 {
     int rc = sqlite3_open(gpkg->path, &gpkg->db);
@@ -240,7 +243,7 @@ void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
         Tile *baseTile = getTile(db, tileCache, tile->z, tile->x, tile->y);
 
         // Merge tiles if tile exists in base gpkg
-        if (baseTile->blob != NULL)
+        if (baseTile != NULL)
         {
             // char *pythonMerge = (char *)malloc(10000000 * sizeof(char));
             // sprintf(pythonMerge, "python3 ./merge.py %s %s", baseTile->blob, tile->blob);
@@ -269,14 +272,19 @@ void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
             // tile->blob = strdup(pythonMerge);
             // tile->blob = combinedBlob;
             tile->blob = blob;
+            tile->blobSize = strlen(blob);
             // pclose(fp);
+            freeTile(baseTile);
         }
 
         // printf("yessss %s\n", tile->blob);
 
         insertTile(db, tileCache, tile);
 
-        freeTile(baseTile);
+        // if (baseTile != NULL)
+        // {
+        //     freeTile(baseTile);
+        // }
 
         // char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
         // sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);

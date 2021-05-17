@@ -25,13 +25,6 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    char *blobAllocation = getenv("BLOB_MEMORY_ALLOCATION");
-    if (blobAllocation == NULL)
-    {
-        printf("Please set BLOB_MEMORY_ALLOCATION env variable to wanted allocation size (number of bytes)");
-        exit(-1);
-    }
-
     // TODO: check if path exists and is file
 
     // Get full path to gpkg files
