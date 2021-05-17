@@ -106,9 +106,9 @@ void insertTile(sqlite3 *db, char *tileCache, Tile *tile)
     // sqlite3_bind_int(stmt, 3, tile->y);
     // sqlite3_bind_blob(stmt, 4, tile->blob, strlen(tile->blob), SQLITE_TRANSIENT);
     char *res = executeStatementSingleColResult(db, tileInsertQuery);
+    free(tileInsertQuery);
     free(res);
     finalizeStatement(stmt);
-    free(tileInsertQuery);
 }
 
 void addIndex(sqlite3 *db, char *tileCache)
@@ -175,15 +175,15 @@ void updateExtent(Gpkg *baseGpkg, Gpkg *newGpkg)
     free(newExtent);
 }
 
-void openGpkg(Gpkg *gpkg)
+int openGpkg(Gpkg *gpkg)
 {
     int rc = sqlite3_open(gpkg->path, &gpkg->db);
     if (rc != SQLITE_OK)
     {
         fprintf(stderr, "Cannot open database: %s, error: %s\n", gpkg->path, sqlite3_errmsg(gpkg->db));
-        closeGpkg(gpkg);
-        exit(-1);
+        return -1;
     }
+    return 0;
 }
 
 Gpkg *readGpkgInfo(char *path)
@@ -191,7 +191,12 @@ Gpkg *readGpkgInfo(char *path)
     Gpkg *gpkg = (Gpkg *)malloc(sizeof(Gpkg));
     gpkg->path = path;
 
-    openGpkg(gpkg);
+    int ok = openGpkg(gpkg);
+    if (ok == -1)
+    {
+        return NULL;
+    }
+
     readTileCache(gpkg);
     readMinZoomLevel(gpkg);
     readMaxZoomLevel(gpkg);

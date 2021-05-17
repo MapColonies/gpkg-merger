@@ -39,6 +39,18 @@ int main(int argc, char **argv)
     Gpkg *baseGpkg = readGpkgInfo(baseGpkgPath);
     Gpkg *newGpkg = readGpkgInfo(newGpkgPath);
 
+    if (baseGpkg == NULL && newGpkg != NULL)
+    {
+        closeGpkg(newGpkg);
+        exit(-1);
+    }
+
+    if (newGpkg == NULL && baseGpkg != NULL)
+    {
+        closeGpkg(baseGpkg);
+        exit(-1);
+    }
+
     // Merge gpkgs
     mergeGpkgs(baseGpkg, newGpkg, batchSize);
 
