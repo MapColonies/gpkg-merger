@@ -14,6 +14,11 @@
         exit(-1);                                                                         \
     }
 
+MagickBooleanType wandHasAlpha(MagickWand *wand)
+{
+    return MagickGetImageAlphaChannel(wand) == MagickTrue;
+}
+
 unsigned char *hexToByteArray(unsigned char *hex, size_t length)
 {
     char *position = hex;
@@ -30,51 +35,22 @@ unsigned char *hexToByteArray(unsigned char *hex, size_t length)
     return byteArray;
 }
 
-unsigned char *merge(char *hexValue, char *hexValue2)
+void createWandFromHex(MagickWand *wand, unsigned char *hex)
 {
-    MagickWand *wand1, *wand2;
-    MagickBooleanType status;
-
-    // MagickWandGenesis();
-
-    wand1 = NewMagickWand();
-    wand2 = NewMagickWand();
-
-    unsigned char *byteArr = hexToByteArray(hexValue, strlen(hexValue));
-    status = MagickReadImageBlob(wand1, byteArr, strlen(hexValue) / 2 + 1);
-    free(byteArr);
+    unsigned char *byteArray;
+    byteArray = hexToByteArray(hex, strlen(hex));
+    MagickBooleanType status = MagickReadImageBlob(wand, byteArray, strlen(hex) / 2 + 1);
+    free(byteArray);
 
     if (status == MagickFalse)
-        ThrowWandException(wand1);
+        ThrowWandException(wand);
+}
 
-    byteArr = hexToByteArray(hexValue2, strlen(hexValue2));
-    status = MagickReadImageBlob(wand2, byteArr, strlen(hexValue2) / 2 + 1);
-    free(byteArr);
-
-    if (status == MagickFalse)
-        ThrowWandException(wand2);
-
-    status = MagickAddImage(wand1, wand2);
-
-    if (status == MagickFalse)
-        ThrowWandException(wand1);
-
-    MagickSetFirstIterator(wand1);
-    status = MagickCompositeImage(wand1, wand2, OverCompositeOp, MagickFalse, 0, 0);
-
-    if (status == MagickFalse)
-        ThrowWandException(wand1);
-
+unsigned char *hexFromWand(MagickWand *wand)
+{
     size_t length;
-    unsigned char *blob = MagickGetImageBlob(wand1, &length);
+    unsigned char *blob = MagickGetImageBlob(wand, &length);
     unsigned char *pos = (unsigned char *)malloc((length * 2 + 1) * sizeof(unsigned char));
-
-    if (status == MagickFalse)
-        ThrowWandException(wand1);
-
-    wand1 = DestroyMagickWand(wand1);
-    wand2 = DestroyMagickWand(wand2);
-    // MagickWandTerminus();
 
     int i;
     for (i = 0; i < length; i++)
@@ -82,6 +58,36 @@ unsigned char *merge(char *hexValue, char *hexValue2)
         sprintf(pos + (i * 2), "%02x", blob[i]);
     }
     free(blob);
-
     return pos;
+}
+
+unsigned char *merge(char *firstImageHex, char *secondImageHex)
+{
+    MagickWand *firstWand, *secondWand;
+    MagickBooleanType status;
+    unsigned char *hexReturn;
+
+    firstWand = NewMagickWand();
+    secondWand = NewMagickWand();
+
+    createWandFromHex(firstWand, firstImageHex);
+    createWandFromHex(secondWand, secondImageHex);
+
+    if (wandHasAlpha(secondWand))
+    {
+        status = MagickCompositeImage(firstWand, secondWand, OverCompositeOp, MagickFalse, 0, 0);
+        if (status == MagickFalse)
+            ThrowWandException(firstWand);
+        
+        hexReturn = hexFromWand(firstWand);
+    }
+    else
+    {
+        hexReturn = hexFromWand(secondWand);
+    }
+
+    firstWand = DestroyMagickWand(firstWand);
+    secondWand = DestroyMagickWand(secondWand);
+
+    return hexReturn;
 }
