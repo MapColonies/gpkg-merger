@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "gpkg.h"
 #include "threadPool/threadPool.h"
 #include "tileBatch.h"
@@ -15,6 +16,7 @@ void doesPathExist(char *fullPath, char *file)
 
 int main(int argc, char **argv)
 {
+    clock_t start = clock();
     // TODO: get alot of gpkgs and merge into one
 
     // Require input of 2 paths (base and new gpkg) and wanted batch size
@@ -60,5 +62,8 @@ int main(int argc, char **argv)
     closeGpkg(baseGpkg);
     closeGpkg(newGpkg);
 
+    clock_t end = clock();
+    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+    printf("time: %f\n", seconds);
     return 0;
 }
