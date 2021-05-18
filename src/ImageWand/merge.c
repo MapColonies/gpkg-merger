@@ -75,6 +75,7 @@ unsigned char *merge(char *firstImageHex, char *secondImageHex)
 
     if (wandHasAlpha(secondWand))
     {
+        // Image has transparency - we need to composite tiles.
         status = MagickCompositeImage(firstWand, secondWand, OverCompositeOp, MagickFalse, 0, 0);
         if (status == MagickFalse)
             ThrowWandException(firstWand);
@@ -83,6 +84,7 @@ unsigned char *merge(char *firstImageHex, char *secondImageHex)
     }
     else
     {
+        // Image has no transparency - it is full. Return it.
         hexReturn = hexFromWand(secondWand);
     }
 
