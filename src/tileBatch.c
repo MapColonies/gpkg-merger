@@ -70,6 +70,24 @@ TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current
     return tileBatch;
 }
 
+TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
+{
+    TileBatch *newTileBatch = (TileBatch *)malloc(sizeof(TileBatch));
+    Tile **tiles = (Tile **)malloc(tileBatch->size * sizeof(Tile *));
+
+    for (int i = 0; i < tileBatch->size; i++)
+    {
+        Tile *baseTile = getNextTile(tileBatch);
+        tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
+    }
+
+    newTileBatch->tiles = tiles;
+    newTileBatch->size = tileBatch->size;
+    newTileBatch->current = 0;
+    tileBatch->current = 0;
+    return newTileBatch;
+}
+
 Tile *getNextTile(TileBatch *tileBatch)
 {
     // If we are at the end of the batch

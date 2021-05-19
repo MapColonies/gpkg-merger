@@ -139,15 +139,16 @@ unsigned char *hexFromWand(MagickWand *wand)
 
 unsigned char *merge(char *firstImageHex, char *secondImageHex)
 {
-    MagickWand *firstWand, *secondWand;
-    MagickBooleanType status;
+    // printf("%s\n\n\n\n\n", secondImageHex);
+    MagickWand *secondWand;
     unsigned char *hexReturn;
     secondWand = NewMagickWand();
     createWandFromHex(secondWand, secondImageHex);
     if (wandHasAlpha(secondWand))
     {
         // Image has transparency - we need to composite tiles.
-        firstWand = NewMagickWand();
+        MagickWand *firstWand = NewMagickWand();
+        MagickBooleanType status;
         createWandFromHex(firstWand, firstImageHex);
         status = MagickCompositeImage(firstWand, secondWand, OverCompositeOp, MagickFalse, 0, 0);
         if (status == MagickFalse)
@@ -158,7 +159,7 @@ unsigned char *merge(char *firstImageHex, char *secondImageHex)
     else
     {
         // Image has no transparency - it is full. Return it.
-        hexReturn = hexFromWand(secondWand);
+        hexReturn = secondImageHex;
     }
     secondWand = DestroyMagickWand(secondWand);
     return hexReturn;
