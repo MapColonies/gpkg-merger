@@ -153,7 +153,7 @@ unsigned char *merge(char *firstImageHex, char *secondImageHex)
         status = MagickCompositeImage(firstWand, secondWand, OverCompositeOp, MagickFalse, 0, 0);
         if (status == MagickFalse)
             ThrowWandException(firstWand);
-        hexReturn = hexFromWand(firstWand);
+        hexReturn = secondImageHex;
         firstWand = DestroyMagickWand(firstWand);
     }
     else
