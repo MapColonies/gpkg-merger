@@ -2,9 +2,12 @@
 #define MERGE_H
 
 #include <string.h>
+#include <sqlite3.h>
+#include "../tile.h"
 #include "MagickWand/MagickWand.h"
 
 void ThrowWandException(MagickWand *);
-unsigned char *merge(char *hexValue, char *hexValue2);
+char *mergeNewToBase(Tile *, sqlite3 *, char *);
+char *mergeWands(MagickWand *, MagickWand *);
 
 #endif // MERGE_H

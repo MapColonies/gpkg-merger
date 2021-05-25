@@ -249,18 +249,18 @@ void mergeTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
     {
         Tile *tile = getNextTile(tileBatch);
         // pthread_mutex_lock(&insertTileLock);
-        Tile *baseTile = getTile(db, tileCache, tile->z, tile->x, tile->y);
+        // Tile *baseTile = getTile(db, tileCache, tile->z, tile->x, tile->y);
         // pthread_mutex_unlock(&insertTileLock);
 
         // Merge tiles if tile exists in base gpkg
-        if (baseTile != NULL)
-        {
-            char *blob = merge(baseTile->blob, tile->blob);
+        // if (baseTile != NULL)
+        // {
+            // char *blob = merge(baseTile->blob, tile->blob);
+            char *blob = mergeNewToBase(tile, db, tileCache);
             free(tile->blob);
             tile->blob = blob;
             tile->blobSize = strlen(blob);
-            freeTile(baseTile);
-        }
+        // }
 
         // insertTile(db, tileCache, tile);
     }
