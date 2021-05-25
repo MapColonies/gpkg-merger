@@ -14,7 +14,6 @@
 typedef struct Gpkg
 {
     char *path;
-    // sqlite3 *db;
     char *tileCache;
     int minZoom;
     int maxZoom;

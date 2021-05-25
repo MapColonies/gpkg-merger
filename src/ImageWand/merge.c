@@ -159,6 +159,7 @@ unsigned char *merge(char *firstImageHex, char *secondImageHex)
     else
     {
         // Image has no transparency - it is full. Return it.
+        // hexReturn = hexFromWand(secondWand);
         hexReturn = secondImageHex;
     }
     secondWand = DestroyMagickWand(secondWand);

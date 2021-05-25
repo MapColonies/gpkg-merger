@@ -4,13 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <stdatomic.h>
 #include "tile.h"
 #include "statement.h"
 
 typedef struct TileBatch
 {
     Tile **tiles;
-    int current;
+    atomic_int current;
     int size;
 } TileBatch;
 
