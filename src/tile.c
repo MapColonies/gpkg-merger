@@ -4,7 +4,6 @@
 
 char *getTileSelectQuery(char *tileCache, int z, int x, int y)
 {
-    // char prefix[] = "SELECT zoom_level, tile_column, tile_row, hex(tile_data) FROM ";
     char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "SELECT hex(tile_data) FROM %s where zoom_level=%d and tile_column=%d and tile_row=%d", tileCache, z, x, y);
     return sql;
@@ -42,7 +41,7 @@ void printTile(Tile *tile)
     printf("z: %d\n", tile->z);
     printf("x: %d\n", tile->x);
     printf("y: %d\n", tile->y);
-    // printf("blob: %s\n", tile->blob);
+    printf("blob: %s\n", tile->blob);
     printf("blob size: %d\n", tile->blobSize);
 }
 

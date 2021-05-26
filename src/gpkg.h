@@ -23,6 +23,6 @@ typedef struct Gpkg
 Gpkg *readGpkgInfo(char *path);
 void closeGpkg(Gpkg *gpkg);
 void printGpkgInfo(Gpkg *gpkg);
-void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize);
+void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize, int numThreads);
 
 #endif // GPKG_H_
