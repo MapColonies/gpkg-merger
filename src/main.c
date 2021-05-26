@@ -65,9 +65,6 @@ int main(int argc, char **argv)
         }
     }
 
-    printf("%d\n", numThreads);
-    exit(0);
-
     MagickWandGenesis();
     // Merge gpkgs
     mergeGpkgs(baseGpkg, newGpkg, batchSize, numThreads);
