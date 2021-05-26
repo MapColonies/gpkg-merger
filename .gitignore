@@ -59,3 +59,7 @@ compileAndRun.sh
 
 *.zip
 *.tar
+*.txt
+
+merge
+a.out

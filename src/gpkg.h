@@ -5,14 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <pthread.h>
 #include "tileBatch.h"
 #include "statement.h"
 #include "ImageWand/merge.h"
+#include "threadPool/threadPool.h"
 
 typedef struct Gpkg
 {
     char *path;
-    sqlite3 *db;
     char *tileCache;
     int minZoom;
     int maxZoom;
