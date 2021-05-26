@@ -74,29 +74,11 @@ TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCa
 {
     TileBatch *newTileBatch = (TileBatch *)malloc(sizeof(TileBatch));
     Tile **tiles = (Tile **)malloc(tileBatch->size * sizeof(Tile *));
-    // int i = -1;
-
-    // int count = 0;
-
-    // do
-    // {
-    //     i++;
-    //     Tile *baseTile = getNextTile(tileBatch);
-    //     // tiles[i] = baseTile;
-    //     tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
-    //     printTile(tiles[i]);
-    // } while (tiles[i] != NULL);
 
     for (int i = 0; i < tileBatch->size; i++)
     {
         Tile *baseTile = getNextTile(tileBatch);
         tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
-
-        // if (newTile != NULL)
-        // {
-        // tiles[i] = newTile;
-        // count++;
-        // }
     }
 
     newTileBatch->tiles = tiles;
@@ -114,8 +96,6 @@ Tile *getNextTile(TileBatch *tileBatch)
         return NULL;
     }
 
-    // int currentTile = tileBatch->current++;
-    // Tile *tile = tileBatch->tiles[currentTile];
     Tile *tile = tileBatch->tiles[tileBatch->current];
     tileBatch->current++;
     return tile;
