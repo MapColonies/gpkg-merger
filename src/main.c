@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     if (numThreadsString != NULL)
     {
         int tryParse = atoi(numThreadsString);
-        if (tryParse != 0)
+        if (tryParse > 0)
         {
             numThreads = tryParse;
         }
