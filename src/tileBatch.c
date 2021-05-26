@@ -1,5 +1,7 @@
 #include "tileBatch.h"
 
+#define QUERY_SIZE 500
+
 Tile *executeTileStatement(sqlite3_stmt *stmt)
 {
     int z, x, y, blobSize;
@@ -25,7 +27,7 @@ Tile *executeTileStatement(sqlite3_stmt *stmt)
 
 char *getBatchSelectQuery(char *tileCache, int currentOffset, int batchSize)
 {
-    char *sql = (char *)malloc(500 * sizeof(char));
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "SELECT zoom_level, tile_column, tile_row, hex(tile_data), length(hex(tile_data)) as blob_size FROM %s limit %d offset %d", tileCache, batchSize, currentOffset);
     return sql;
 }
@@ -74,29 +76,11 @@ TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCa
 {
     TileBatch *newTileBatch = (TileBatch *)malloc(sizeof(TileBatch));
     Tile **tiles = (Tile **)malloc(tileBatch->size * sizeof(Tile *));
-    // int i = -1;
-
-    // int count = 0;
-
-    // do
-    // {
-    //     i++;
-    //     Tile *baseTile = getNextTile(tileBatch);
-    //     // tiles[i] = baseTile;
-    //     tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
-    //     printTile(tiles[i]);
-    // } while (tiles[i] != NULL);
 
     for (int i = 0; i < tileBatch->size; i++)
     {
         Tile *baseTile = getNextTile(tileBatch);
         tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
-
-        // if (newTile != NULL)
-        // {
-        // tiles[i] = newTile;
-        // count++;
-        // }
     }
 
     newTileBatch->tiles = tiles;
@@ -114,8 +98,6 @@ Tile *getNextTile(TileBatch *tileBatch)
         return NULL;
     }
 
-    // int currentTile = tileBatch->current++;
-    // Tile *tile = tileBatch->tiles[currentTile];
     Tile *tile = tileBatch->tiles[tileBatch->current];
     tileBatch->current++;
     return tile;

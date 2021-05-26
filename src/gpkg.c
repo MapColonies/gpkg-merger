@@ -6,6 +6,7 @@
 #define TILE_MATRIX_QUERY "SELECT * FROM gpkg_tile_matrix"
 #define BASE_ZOOM_QUERY "SELECT zoom_level FROM gpkg_tile_matrix where zoom_level=0 and matrix_width=1 and matrix_height=1"
 #define EXTENT_QUERY "SELECT min_x, min_y, max_x, max_y FROM gpkg_contents"
+#define QUERY_SIZE 500
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -30,7 +31,6 @@ typedef struct Extent
     double maxY;
 } Extent;
 
-// pthread_mutex_t getTileLock;
 pthread_mutex_t insertTileLock;
 int countAll = 0;
 int countTiles = 0;
@@ -47,35 +47,29 @@ int min(double num1, double num2)
 
 char *getAddIndexQuery(char *tileCache)
 {
-    char *sql = (char *)malloc(500 * sizeof(char));
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "CREATE UNIQUE INDEX IF NOT EXISTS index_tiles on %s (zoom_level, tile_row, tile_column)", tileCache);
     return sql;
 }
 
 char *getTileInsertQuery(char *tileCache, Tile *tile)
 {
-    // char *blobAllocation = getenv("BLOB_MEMORY_ALLOCATION");
-    // int allocationSize = atoi(blobAllocation);
-    // printf("Size: %d\n", tile->blobSize);
-
-    // We allocate 2 time the size of the blob because it has HEX representation, so it takes two times the size when represented as string
-    int allocationSize = tile->blobSize * 2 + 1000;
+    int allocationSize = tile->blobSize * 2 + QUERY_SIZE;
     char *sql = (char *)malloc(allocationSize * sizeof(char));
-    // char *sql = (char *)malloc(allocationSize * sizeof(char));
     sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (%d, %d, %d, x'%s')", tileCache, tile->z, tile->x, tile->y, tile->blob);
     return sql;
 }
 
 char *getTileCountQuery(char *tileCache)
 {
-    char *sql = (char *)malloc(500 * sizeof(char));
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "SELECT COUNT(*) FROM %s", tileCache);
     return sql;
 }
 
 char *getExtentInsertQuery(Extent *extent)
 {
-    char *sql = (char *)malloc(500 * sizeof(char));
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "UPDATE gpkg_contents SET min_x=%0.20f, max_x=%0.20f, min_y=%0.20f, max_y=%0.20f", extent->minX, extent->maxX, extent->minY, extent->maxY);
     return sql;
 }
@@ -108,12 +102,9 @@ void insertTile(sqlite3 *db, char *tileCache, Tile *tile)
 {
     char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
     sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
-    // char *res = executeStatementSingleColResult(db, tileInsertQuery);
     executeStatementSingleColResult(db, tileInsertQuery);
-    // printf("res: %s", res);
 
     free(tileInsertQuery);
-    // free(res);
     finalizeStatement(stmt);
 }
 
@@ -132,13 +123,6 @@ char *getTileMatrixInsertQuery(char *tileCache, TileMatrix *tileMatrix)
             tileCache, tileMatrix->zoomLevel, tileMatrix->matrixWidth, tileMatrix->matrixHeight, tileMatrix->tileWidth, tileMatrix->tileHeight, tileMatrix->pixleXSize, tileMatrix->pixleYSize);
     return sql;
 }
-
-// char *getBatchInsertQuery(char *tileCache, int currentOffset, int batchSize)
-// {
-//     char *sql = (char *)malloc(200 * sizeof(char));
-//     sprintf(sql, "SELECT zoom_level, tile_column, tile_row, hex(tile_data) FROM %s limit %d offset %d", tileCache, batchSize, currentOffset);
-//     return sql;
-// }
 
 char *readTileCache(sqlite3 *db)
 {
@@ -208,12 +192,6 @@ Gpkg *readGpkgInfo(char *path)
     gpkg->path = path;
 
     sqlite3 *db = openGpkg(path, SQLITE_OPEN_READONLY);
-    // if (db == NULL)
-    // {
-    //     return NULL;
-    // }
-
-    // gpkg->db = db;
     gpkg->tileCache = readTileCache(db);
     gpkg->minZoom = readMinZoomLevel(db);
     gpkg->maxZoom = readMaxZoomLevel(db);
@@ -253,12 +231,9 @@ void mergeTileBatch(TileBatch *tileBatch, TileBatch *baseTileBatch)
     for (int i = 0; i < tileBatch->size; i++)
     {
         Tile *tile = getNextTile(tileBatch);
-        // pthread_mutex_lock(&insertTileLock);
         Tile *baseTile = getNextTile(baseTileBatch);
-        // pthread_mutex_unlock(&insertTileLock);
 
         // Merge tiles if tile exists in base gpkg
-        // printf("Hello\n");
         if (baseTile != NULL)
         {
             char *blob = merge(baseTile->blob, tile->blob);
@@ -270,10 +245,7 @@ void mergeTileBatch(TileBatch *tileBatch, TileBatch *baseTileBatch)
                 tile->blob = blob;
                 tile->blobSize = strlen(blob);
             }
-            // freeTile(baseTile);
         }
-
-        // insertTile(db, tileCache, tile);
     }
     baseTileBatch->current = 0;
     tileBatch->current = 0;
@@ -297,21 +269,12 @@ void printFinishedBatch()
 void work(void **args)
 {
     TileBatch *baseTileBatch = (TileBatch *)args[0];
-    // Gpkg *newGpkg = (Gpkg *)args[1];
     TileBatch *tileBatch = (TileBatch *)args[1];
     char *baseGpkgPath = (char *)args[2];
     char *tileCache = (char *)args[3];
 
     int count = 0;
     int size = 0;
-
-    // Get tile batch
-    // pthread_mutex_lock(&getTileLock);
-    // tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
-    // size = tileBatch->size;
-    // count += size;
-    // newGpkg->current = count;
-    // pthread_mutex_unlock(&getTileLock);
 
     mergeTileBatch(tileBatch, baseTileBatch);
 

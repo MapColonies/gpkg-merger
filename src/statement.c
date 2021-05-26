@@ -1,5 +1,7 @@
 #include "statement.h"
 
+#define QUERY_SIZE 500
+
 sqlite3_stmt *prepareStatement(sqlite3 *db, char *query)
 {
     sqlite3_stmt *stmt;
@@ -42,7 +44,7 @@ char *executeStatementSingleColResult(sqlite3 *db, char *query)
 
 char *getBlobSizeQuery(char *tileCache, int z, int x, int y)
 {
-    char *sql = (char *)malloc(500 * sizeof(char));
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "SELECT length(hex(tile_data)) FROM %s where zoom_level=%d and tile_column=%d and tile_row=%d", tileCache, z, x, y);
     return sql;
 }
