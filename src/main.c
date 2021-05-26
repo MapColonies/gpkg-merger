@@ -16,7 +16,6 @@ void doesPathExist(char *fullPath, char *file)
 
 int main(int argc, char **argv)
 {
-    // clock_t start = clock();
     time_t start, end;
     double diff;
     time(&start);
@@ -30,8 +29,6 @@ int main(int argc, char **argv)
         printf("Example: %s area1.gpkg area2.gpkg 1000\n", argv[0]);
         exit(-1);
     }
-
-    // TODO: check if path exists and is file
 
     // Get full path to gpkg files
     char *baseGpkgPath = realpath(argv[1], NULL);
@@ -57,9 +54,20 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
+    int numThreads = 5;
+    char *numThreadsString = getenv("NUM_THREADS");
+    if (numThreadsString != NULL)
+    {
+        int tryParse = atoi(numThreadsString);
+        if (tryParse > 0)
+        {
+            numThreads = tryParse;
+        }
+    }
+
     MagickWandGenesis();
     // Merge gpkgs
-    mergeGpkgs(baseGpkg, newGpkg, batchSize);
+    mergeGpkgs(baseGpkg, newGpkg, batchSize, numThreads);
     MagickWandTerminus();
 
     // Close gpkgs
@@ -70,8 +78,5 @@ int main(int argc, char **argv)
     time(&end);
     diff = difftime(end, start);
     printf("time: %.2lf\n", diff);
-    // clock_t end = clock();
-    // float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-    // printf("time: %f\n", seconds);
     return 0;
 }

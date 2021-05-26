@@ -336,7 +336,7 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
     free(countAllString);
 }
 
-void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
+void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize, int numThreads)
 {
     sqlite3 *baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);
     sqlite3 *newDb = openGpkg(newGpkg->path, SQLITE_OPEN_READONLY);
@@ -354,7 +354,7 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
     int size = 0;
 
     pthread_mutex_init(&insertTileLock, NULL);
-    tpool_t *threadPool = tpool_create(5);
+    tpool_t *threadPool = tpool_create(numThreads);
 
     int amount = countAll / batchSize;
     if (countAll % batchSize != 0)

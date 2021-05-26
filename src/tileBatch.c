@@ -79,8 +79,8 @@ TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCa
 
     for (int i = 0; i < tileBatch->size; i++)
     {
-        Tile *baseTile = getNextTile(tileBatch);
-        tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
+        Tile *newTile = getNextTile(tileBatch);
+        tiles[i] = getTile(db, tileCache, newTile->z, newTile->x, newTile->y);
     }
 
     newTileBatch->tiles = tiles;
