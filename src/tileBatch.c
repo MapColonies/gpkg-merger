@@ -1,4 +1,5 @@
 #include "tileBatch.h"
+#include "ImageWand/upscaling.h"
 
 Tile *executeTileStatement(sqlite3_stmt *stmt)
 {
@@ -70,6 +71,50 @@ TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current
     return tileBatch;
 }
 
+TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
+{
+    TileBatch *newTileBatch = (TileBatch *)malloc(sizeof(TileBatch));
+    Tile **tiles = (Tile **)malloc(tileBatch->size * sizeof(Tile *));
+    // int i = -1;
+
+    // int count = 0;
+
+    // do
+    // {
+    //     i++;
+    //     Tile *baseTile = getNextTile(tileBatch);
+    //     // tiles[i] = baseTile;
+    //     tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
+    //     printTile(tiles[i]);
+    // } while (tiles[i] != NULL);
+
+    for (int i = 0; i < tileBatch->size; i++)
+    {
+        Tile *newTile = getNextTile(tileBatch);
+        Tile *baseTile = getTile(db, tileCache, newTile->z, newTile->x, newTile->y);
+        // tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
+
+        if (baseTile == NULL)
+        {
+            baseTile = getLastExistingTile(newTile->x, newTile->y, newTile->z, db, tileCache);
+            // count++;
+        }
+        tiles[i] = baseTile;
+
+        // if (newTile != NULL)
+        // {
+        // tiles[i] = newTile;
+        // count++;
+        // }
+    }
+
+    newTileBatch->tiles = tiles;
+    newTileBatch->size = tileBatch->size;
+    newTileBatch->current = 0;
+    tileBatch->current = 0;
+    return newTileBatch;
+}
+
 Tile *getNextTile(TileBatch *tileBatch)
 {
     // If we are at the end of the batch
@@ -78,6 +123,8 @@ Tile *getNextTile(TileBatch *tileBatch)
         return NULL;
     }
 
+    // int currentTile = tileBatch->current++;
+    // Tile *tile = tileBatch->tiles[currentTile];
     Tile *tile = tileBatch->tiles[tileBatch->current];
     tileBatch->current++;
     return tile;
@@ -88,7 +135,10 @@ void printBatch(TileBatch *batch)
     Tile **tiles = batch->tiles;
     for (int i = 0; i < batch->size; i++)
     {
-        printTile(tiles[i]);
+        if (tiles[i] != NULL)
+        {
+            printTile(tiles[i]);
+        }
     }
 }
 
@@ -98,7 +148,10 @@ void freeBatch(TileBatch *batch)
     Tile **tiles = batch->tiles;
     for (int i = 0; i < batch->size; i++)
     {
-        freeTile(tiles[i]);
+        if (tiles[i] != NULL)
+        {
+            freeTile(tiles[i]);
+        }
     }
     free(tiles);
     free(batch);

@@ -1,10 +1,7 @@
-#include "MagickWand/MagickWand.h"
-#include "../tile.h"
-#include "wandUtil.h"
-#include <string.h>
-#include "../statement.h"
-#include "../gpkg.h"
 #include <sqlite3.h>
+#include "MagickWand/MagickWand.h"
+#include "wandUtil.h"
+#include "../tile.h"
 
 #define TILE_WIDTH 256
 #define TILE_HEIGHT 256
@@ -14,6 +11,6 @@
 #define SQL_SUBQUERY_SIZE 80
 
 void lastTileSQLQuery(char *, char *);
-void bindParametersToQueryAndExecute(Tile *, sqlite3 *, char *, int[]);
+Tile *bindParametersToQueryAndExecute(sqlite3 *, char *, int[]);
 Tile *getLastExistingTile(int, int, int, sqlite3 *, char *);
-MagickWand *upscale(int, int, int, sqlite3 *, char *, Tile *);
+void upscale(MagickWand *baseWand, Tile *baseTile, int newZoomLevel, int newX, int newY);

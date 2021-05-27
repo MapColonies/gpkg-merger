@@ -14,7 +14,6 @@
 typedef struct Gpkg
 {
     char *path;
-    sqlite3 *db;
     char *tileCache;
     int minZoom;
     int maxZoom;
@@ -25,5 +24,7 @@ Gpkg *readGpkgInfo(char *path);
 void closeGpkg(Gpkg *gpkg);
 void printGpkgInfo(Gpkg *gpkg);
 void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize);
+void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize);
+sqlite3 *openGpkg(char *path, int openMode); // TODO: REMOVE
 
 #endif // GPKG_H_

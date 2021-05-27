@@ -56,9 +56,10 @@ char *getTileInsertQuery(char *tileCache, Tile *tile)
 {
     // char *blobAllocation = getenv("BLOB_MEMORY_ALLOCATION");
     // int allocationSize = atoi(blobAllocation);
+    // printf("Size: %d\n", tile->blobSize);
 
     // We allocate 2 time the size of the blob because it has HEX representation, so it takes two times the size when represented as string
-    int allocationSize = tile->blobSize * 2 + 500;
+    int allocationSize = tile->blobSize * 2 + 1000;
     char *sql = (char *)malloc(allocationSize * sizeof(char));
     // char *sql = (char *)malloc(allocationSize * sizeof(char));
     sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (%d, %d, %d, x'%s')", tileCache, tile->z, tile->x, tile->y, tile->blob);
@@ -107,7 +108,6 @@ void insertTile(sqlite3 *db, char *tileCache, Tile *tile)
 {
     char *tileInsertQuery = getTileInsertQuery(tileCache, tile);
     sqlite3_stmt *stmt = prepareStatement(db, tileInsertQuery);
-    // printf("Hello7\n");
     // char *res = executeStatementSingleColResult(db, tileInsertQuery);
     executeStatementSingleColResult(db, tileInsertQuery);
     // printf("res: %s", res);
@@ -140,33 +140,35 @@ char *getTileMatrixInsertQuery(char *tileCache, TileMatrix *tileMatrix)
 //     return sql;
 // }
 
-void readTileCache(Gpkg *gpkg)
+char *readTileCache(sqlite3 *db)
 {
-    char *tileCache = executeStatementSingleColResult(gpkg->db, CACHE_NAME_QUERY);
+    char *tileCache = executeStatementSingleColResult(db, CACHE_NAME_QUERY);
     // TODO: check if failed
-    gpkg->tileCache = tileCache;
+    return tileCache;
 }
 
-void readMinZoomLevel(Gpkg *gpkg)
+int readMinZoomLevel(sqlite3 *db)
 {
-    char *minZoom = executeStatementSingleColResult(gpkg->db, MIN_ZOOM_QUERY);
+    char *minZoomString = executeStatementSingleColResult(db, MIN_ZOOM_QUERY);
     // TODO: check if failed
-    gpkg->minZoom = atoi(minZoom);
-    free(minZoom);
+    int minZoom = atoi(minZoomString);
+    free(minZoomString);
+    return minZoom;
 }
 
-void readMaxZoomLevel(Gpkg *gpkg)
+int readMaxZoomLevel(sqlite3 *db)
 {
-    char *maxZoom = executeStatementSingleColResult(gpkg->db, MAX_ZOOM_QUERY);
+    char *maxZoomString = executeStatementSingleColResult(db, MAX_ZOOM_QUERY);
     // TODO: check if failed
-    gpkg->maxZoom = atoi(maxZoom);
-    free(maxZoom);
+    int maxZoom = atoi(maxZoomString);
+    free(maxZoomString);
+    return maxZoom;
 }
 
-void updateExtent(Gpkg *baseGpkg, Gpkg *newGpkg)
+void updateExtent(sqlite3 *baseDb, sqlite3 *newDb)
 {
-    Extent *baseExtent = getExtent(baseGpkg->db);
-    Extent *newExtent = getExtent(newGpkg->db);
+    Extent *baseExtent = getExtent(baseDb);
+    Extent *newExtent = getExtent(newDb);
 
     baseExtent->minX = MIN(baseExtent->minX, newExtent->minX);
     baseExtent->maxX = MAX(baseExtent->maxX, newExtent->maxX);
@@ -174,29 +176,30 @@ void updateExtent(Gpkg *baseGpkg, Gpkg *newGpkg)
     baseExtent->maxY = MAX(baseExtent->maxY, newExtent->maxY);
 
     char *query = getExtentInsertQuery(baseExtent);
-    char *res = executeStatementSingleColResult(baseGpkg->db, query);
+    char *res = executeStatementSingleColResult(baseDb, query);
     free(res);
     free(query);
     free(baseExtent);
     free(newExtent);
 }
 
-void convertIfBase1ToBase2(Gpkg *gpkg)
-{
-    // TODO: convert
-    char *query = executeStatementSingleColResult(gpkg->db, BASE_ZOOM_QUERY);
-    free(query);
-}
+// void convertIfBase1ToBase2(Gpkg *gpkg)
+// {
+//     // TODO: convert
+//     char *query = executeStatementSingleColResult(gpkg->db, BASE_ZOOM_QUERY);
+//     free(query);
+// }
 
-int openGpkg(Gpkg *gpkg)
+sqlite3 *openGpkg(char *path, int openMode)
 {
-    int rc = sqlite3_open(gpkg->path, &gpkg->db);
+    sqlite3 *db;
+    int rc = sqlite3_open_v2(path, &db, openMode, NULL);
     if (rc != SQLITE_OK)
     {
-        fprintf(stderr, "Cannot open database: %s, error: %s\n", gpkg->path, sqlite3_errmsg(gpkg->db));
-        return -1;
+        fprintf(stderr, "Cannot open database: %s, error: %s\n", path, sqlite3_errmsg(db));
+        return NULL;
     }
-    return 0;
+    return db;
 }
 
 Gpkg *readGpkgInfo(char *path)
@@ -204,23 +207,25 @@ Gpkg *readGpkgInfo(char *path)
     Gpkg *gpkg = (Gpkg *)malloc(sizeof(Gpkg));
     gpkg->path = path;
 
-    int ok = openGpkg(gpkg);
-    if (ok == -1)
-    {
-        return NULL;
-    }
+    sqlite3 *db = openGpkg(path, SQLITE_OPEN_READONLY);
+    // if (db == NULL)
+    // {
+    //     return NULL;
+    // }
 
-    readTileCache(gpkg);
-    readMinZoomLevel(gpkg);
-    readMaxZoomLevel(gpkg);
+    // gpkg->db = db;
+    gpkg->tileCache = readTileCache(db);
+    gpkg->minZoom = readMinZoomLevel(db);
+    gpkg->maxZoom = readMaxZoomLevel(db);
+    sqlite3_close(db);
     gpkg->current = 0;
 
     return gpkg;
 }
 
-void copyTileMatrix(Gpkg *baseGpkg, Gpkg *newGpkg)
+void copyTileMatrix(sqlite3 *baseDb, sqlite3 *newDb, char *baseTileCache)
 {
-    sqlite3_stmt *stmt = prepareStatement(newGpkg->db, TILE_MATRIX_QUERY);
+    sqlite3_stmt *stmt = prepareStatement(newDb, TILE_MATRIX_QUERY);
     int rc = sqlite3_step(stmt);
     do
     {
@@ -233,8 +238,8 @@ void copyTileMatrix(Gpkg *baseGpkg, Gpkg *newGpkg)
         tileMatrix->pixleXSize = sqlite3_column_double(stmt, 6);
         tileMatrix->pixleYSize = sqlite3_column_double(stmt, 7);
 
-        char *query = getTileMatrixInsertQuery(baseGpkg->tileCache, tileMatrix);
-        char *res = executeStatementSingleColResult(baseGpkg->db, query);
+        char *query = getTileMatrixInsertQuery(baseTileCache, tileMatrix);
+        char *res = executeStatementSingleColResult(baseDb, query);
         free(res);
         free(query);
 
@@ -243,27 +248,33 @@ void copyTileMatrix(Gpkg *baseGpkg, Gpkg *newGpkg)
     } while (rc == SQLITE_ROW);
 }
 
-void mergeTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
+void mergeTileBatch(TileBatch *tileBatch, TileBatch *baseTileBatch)
 {
     for (int i = 0; i < tileBatch->size; i++)
     {
         Tile *tile = getNextTile(tileBatch);
         // pthread_mutex_lock(&insertTileLock);
-        // Tile *baseTile = getTile(db, tileCache, tile->z, tile->x, tile->y);
+        Tile *baseTile = getNextTile(baseTileBatch);
         // pthread_mutex_unlock(&insertTileLock);
 
         // Merge tiles if tile exists in base gpkg
-        // if (baseTile != NULL)
-        // {
+        // printf("Hello\n");
+        if (baseTile != NULL)
+        {
             // char *blob = merge(baseTile->blob, tile->blob);
-            char *blob = mergeNewToBase(tile, db, tileCache);
-            free(tile->blob);
-            tile->blob = blob;
-            tile->blobSize = strlen(blob);
-        // }
-
+            char *blob = mergeNewToBase(tile, baseTile);
+            // If returned blob is not same blob (merge was required)
+            if (tile->blob != blob)
+            {
+                free(tile->blob);
+                tile->blob = blob;
+                tile->blobSize = strlen(blob);
+            }
+            // freeTile(baseTile);
+        }
         // insertTile(db, tileCache, tile);
     }
+    baseTileBatch->current = 0;
     tileBatch->current = 0;
 }
 
@@ -271,12 +282,10 @@ void insertTileBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCache)
 {
     for (int i = 0; i < tileBatch->size; i++)
     {
-        // printf("Hello6 i=%d\n", i);
         Tile *tile = getNextTile(tileBatch);
-        // printf("Hello3 i=%d\n", i);
-
         insertTile(db, tileCache, tile);
     }
+    tileBatch->current = 0;
 }
 
 void printFinishedBatch()
@@ -286,12 +295,12 @@ void printFinishedBatch()
 
 void work(void **args)
 {
-    Gpkg *baseGpkg = (Gpkg *)args[0];
+    TileBatch *baseTileBatch = (TileBatch *)args[0];
     // Gpkg *newGpkg = (Gpkg *)args[1];
     TileBatch *tileBatch = (TileBatch *)args[1];
+    char *baseGpkgPath = (char *)args[2];
+    char *tileCache = (char *)args[3];
 
-    sqlite3 *baseDb = baseGpkg->db;
-    // sqlite3 *newDb = newGpkg->db;
     int count = 0;
     int size = 0;
 
@@ -302,40 +311,36 @@ void work(void **args)
     // count += size;
     // newGpkg->current = count;
     // pthread_mutex_unlock(&getTileLock);
-
-    mergeTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
-
+    // mergeTileBatch(tileBatch, baseTileBatch, baseDb, tileCache);
     // Insert batch
-    // pthread_mutex_lock(&insertTileLock);
-    // printf("Hello2\n");
-    insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+    mergeTileBatch(tileBatch, baseTileBatch);
+    pthread_mutex_lock(&insertTileLock);
+    sqlite3 *baseDb = openGpkg(baseGpkgPath, SQLITE_OPEN_READWRITE);
+    // TODO: remove merge from lock
+    insertTileBatch(tileBatch, baseDb, tileCache);
     countTiles = countTiles + tileBatch->size;
-    // printFinishedBatch();
-    // pthread_mutex_unlock(&insertTileLock);
-
+    sqlite3_close(baseDb);
+    pthread_mutex_unlock(&insertTileLock);
+    printFinishedBatch();
+    freeBatch(baseTileBatch);
     freeBatch(tileBatch);
-    // printf("Hello4\n");
 }
 
-void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
+void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
 {
-    // TileBatch *tileBatch;
-    sqlite3 *baseDb = baseGpkg->db;
-    sqlite3 *newDb = newGpkg->db;
-    copyTileMatrix(baseGpkg, newGpkg);
-    updateExtent(baseGpkg, newGpkg);
+    sqlite3 *baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);
+    sqlite3 *newDb = openGpkg(newGpkg->path, SQLITE_OPEN_READONLY);
+    copyTileMatrix(baseDb, newDb, baseGpkg->tileCache);
+    updateExtent(baseDb, newDb);
 
     char *tileCountQuery = getTileCountQuery(newGpkg->tileCache);
     char *countAllString = executeStatementSingleColResult(newDb, tileCountQuery);
+
     countAll = atoi(countAllString);
     free(tileCountQuery);
     printf("Working on merging %d tile into base gpkg\n", countAll);
     int count = 0;
     int size = 0;
-
-    // pthread_mutex_init(&getTileLock, NULL);
-    // pthread_mutex_init(&insertTileLock, NULL);
-    // tpool_t *threadPool = tpool_create(5);
 
     int amount = countAll / batchSize;
     if (countAll % batchSize != 0)
@@ -345,42 +350,86 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
 
     for (int i = 0; i < amount; i++)
     {
-        TileBatch *tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
+        TileBatch *tileBatch = getTileBatch(newDb, newGpkg->tileCache, batchSize, newGpkg->current);
         size = tileBatch->size;
         count += size;
         newGpkg->current = count;
-        // do
-        // {
-        void *args[] = {baseGpkg, tileBatch};
-        // tpool_add_work(threadPool, work, args);
-        // printf("Current %d\n", newGpkg->current);
-        // tileBatch = getTileBatch(newGpkg->db, newGpkg->tileCache, batchSize, newGpkg->current);
-        // size = tileBatch->size;
-        mergeTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
+
+        TileBatch *baseTileBatch = getCorrespondingBatch(tileBatch, baseDb, baseGpkg->tileCache);
+
+        // TODO: mergeTileBatch(tileBatch, baseTileBatch, baseDb, baseGpkg->tileCache);
         insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
 
-        // count += size;
-        // newGpkg->current = count;
-        // freeBatch(tileBatch);
         printf("Merged %d/%d tiles\n", count, countAll);
-        // } while (size != 0);
     }
-
-    // printf("Hello\n");
-    // tpool_wait(threadPool);
-    // printf("Hello\n");
-    // tpool_destroy(threadPool);
-    // pthread_mutex_destroy(&getTileLock);
-    // pthread_mutex_destroy(&insertTileLock);
+    sqlite3_close(baseDb);
+    sqlite3_close(newDb);
 
     // Add tile index
+    baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);
     addIndex(baseDb, baseGpkg->tileCache);
+    sqlite3_close(baseDb);
+    free(countAllString);
+}
+
+void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
+{
+    sqlite3 *baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);
+    sqlite3 *newDb = openGpkg(newGpkg->path, SQLITE_OPEN_READONLY);
+    copyTileMatrix(baseDb, newDb, baseGpkg->tileCache);
+    updateExtent(baseDb, newDb);
+    sqlite3_close(baseDb);
+
+    char *tileCountQuery = getTileCountQuery(newGpkg->tileCache);
+    char *countAllString = executeStatementSingleColResult(newDb, tileCountQuery);
+
+    countAll = atoi(countAllString);
+    free(tileCountQuery);
+    printf("Working on merging %d tile into base gpkg\n", countAll);
+    int count = 0;
+    int size = 0;
+
+    pthread_mutex_init(&insertTileLock, NULL);
+    tpool_t *threadPool = tpool_create(5);
+
+    int amount = countAll / batchSize;
+    if (countAll % batchSize != 0)
+    {
+        amount++;
+    }
+
+    for (int i = 0; i < amount; i++)
+    {
+        TileBatch *tileBatch = getTileBatch(newDb, newGpkg->tileCache, batchSize, newGpkg->current);
+        size = tileBatch->size;
+        count += size;
+        newGpkg->current = count;
+
+        pthread_mutex_lock(&insertTileLock);
+        baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READONLY);
+        TileBatch *baseTileBatch = getCorrespondingBatch(tileBatch, baseDb, baseGpkg->tileCache);
+
+        sqlite3_close(baseDb);
+        pthread_mutex_unlock(&insertTileLock);
+
+        void *args[] = {baseTileBatch, tileBatch, baseGpkg->path, baseGpkg->tileCache};
+        tpool_add_work(threadPool, work, args);
+    }
+
+    sqlite3_close(newDb);
+    tpool_wait(threadPool);
+    tpool_destroy(threadPool);
+    pthread_mutex_destroy(&insertTileLock);
+
+    // Add tile index
+    baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);
+    addIndex(baseDb, baseGpkg->tileCache);
+    sqlite3_close(baseDb);
     free(countAllString);
 }
 
 void closeGpkg(Gpkg *gpkg)
 {
-    sqlite3_close(gpkg->db);
     free(gpkg->path);
     free(gpkg->tileCache);
     free(gpkg);

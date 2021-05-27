@@ -1,13 +1,12 @@
 #ifndef MERGE_H /* Include guard */
 #define MERGE_H
 
-#include <string.h>
-#include <sqlite3.h>
-#include "../tile.h"
 #include "MagickWand/MagickWand.h"
+#include "wandUtil.h"
+#include "upscaling.h"
+#include "../tile.h"
 
-void ThrowWandException(MagickWand *);
-char *mergeNewToBase(Tile *, sqlite3 *, char *);
+char *mergeNewToBase(Tile *, Tile *);
 char *mergeWands(MagickWand *, MagickWand *);
 
 #endif // MERGE_H

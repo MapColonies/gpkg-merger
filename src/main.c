@@ -16,7 +16,11 @@ void doesPathExist(char *fullPath, char *file)
 
 int main(int argc, char **argv)
 {
-    clock_t start = clock();
+    // clock_t start = clock();
+    time_t start, end;
+    double diff;
+    time(&start);
+
     // TODO: get alot of gpkgs and merge into one
 
     // Require input of 2 paths (base and new gpkg) and wanted batch size
@@ -62,8 +66,12 @@ int main(int argc, char **argv)
     closeGpkg(baseGpkg);
     closeGpkg(newGpkg);
 
-    clock_t end = clock();
-    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-    printf("time: %f\n", seconds);
+    // Do some calculation.
+    time(&end);
+    diff = difftime(end, start);
+    printf("time: %.2lf\n", diff);
+    // clock_t end = clock();
+    // float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+    // printf("time: %f\n", seconds);
     return 0;
 }
