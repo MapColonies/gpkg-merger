@@ -34,3 +34,4 @@ char *mergeWands(MagickWand *base, MagickWand *new)
 
     return hexFromWand(base);
 }
+

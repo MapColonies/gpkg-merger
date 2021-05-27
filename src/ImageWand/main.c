@@ -10,9 +10,10 @@ int main()
     MagickWandGenesis();
     char *baseGpkgPath = realpath("/home/roees/Documents/gpkgs/artzi_fixed.gpkg", NULL);
     Gpkg *baseGpkg = readGpkgInfo(baseGpkgPath);
-    char *newGpkgPath = realpath("/home/roees/Documents/gpkgs/area1.gpkg", NULL);
+    char *newGpkgPath = realpath("/home/roees/Documents/gpkgs/area1_zoom16.gpkg", NULL);
     Gpkg *newGpkg = readGpkgInfo(newGpkgPath);
-    mergeGpkgs(baseGpkg, newGpkg, 1000);
+    mergeGpkgs(baseGpkg, newGpkg, 200);
+    // mergeGpkgsNoThreads(baseGpkg, newGpkg, 1000);
 
     closeGpkg(baseGpkg);
     closeGpkg(newGpkg);

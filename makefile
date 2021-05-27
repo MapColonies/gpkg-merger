@@ -17,6 +17,14 @@ prepare-upscaling:
 run-upscaling:
 	./upscaling
 
+debug-upscaling: 
+		rm -f upscaling /home/roees/Documents/gpkgs/artzi_fixed.gpkg && \
+		cp /home/roees/Documents/gpkgs/artzi_fixed_DO_NOT_TOUCH.gpkg /home/roees/Documents/gpkgs/artzi_fixed.gpkg && \
+		rm -f valgrind-out.txt && \
+		gcc src/ImageWand/main.c src/threadPool/threadPool.c src/threadPool/threadPool.h src/ImageWand/upscaling.h src/ImageWand/upscaling.c src/ImageWand/wandUtil.h src/ImageWand/wandUtil.c src/statement.h src/statement.c src/gpkg.c src/gpkg.h src/tileBatch.c src/tileBatch.h src/tile.h src/tile.c src/ImageWand/merge.h src/ImageWand/merge.c -lsqlite3 `pkg-config --cflags --libs MagickWand` -O3 -g -o upscaling && \
+		valgrind --log-file=valgrind-out.txt ./upscaling	
+
+
 clean: 
 	rm gpkg-merger
 
