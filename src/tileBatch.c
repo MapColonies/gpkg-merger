@@ -41,11 +41,19 @@ Tile **getNextBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
     char *batchSelectQuery = getBatchSelectQuery(tileCache, current, batchSize);
     sqlite3_stmt *stmt = prepareStatement(db, batchSelectQuery);
 
+    // while (sqlite3_step(stmt) == SQLITE_ROW)
+    // {
+    //     tiles[i] = createTile(sqlite3_column_int(stmt, 0), sqlite3_column_int(stmt, 1),
+    //                           sqlite3_column_int(stmt, 2), strdup(sqlite3_column_blob(stmt, 3)),
+    //                           sqlite3_column_int(stmt, 4));
+    //     i++;
+    // }
     do
     {
         tiles[i] = executeTileStatement(stmt);
         i++;
     } while (i < batchSize && tiles[i - 1] != NULL);
+    printf("ENDED IN: %d\n", i);
 
     free(batchSelectQuery);
     finalizeStatement(stmt);
@@ -70,6 +78,7 @@ TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current
     tileBatch->size = i;
     tileBatch->current = 0;
 
+    printf("HERE2\n");
     return tileBatch;
 }
 
@@ -77,7 +86,6 @@ TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCa
 {
     TileBatch *newTileBatch = (TileBatch *)malloc(sizeof(TileBatch));
     Tile **tiles = (Tile **)malloc(tileBatch->size * sizeof(Tile *));
-
     for (int i = 0; i < tileBatch->size; i++)
     {
         Tile *newTile = getNextTile(tileBatch);
@@ -99,16 +107,15 @@ TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCa
 
 Tile *getNextTile(TileBatch *tileBatch)
 {
+    unsigned int currentTile = __atomic_fetch_add(&(tileBatch->current), 1, __ATOMIC_SEQ_CST);
+
     // If we are at the end of the batch
-    if (tileBatch->current == tileBatch->size)
+    if (currentTile == tileBatch->size)
     {
         return NULL;
     }
 
-    // int currentTile = tileBatch->current++;
-    // Tile *tile = tileBatch->tiles[currentTile];
-    Tile *tile = tileBatch->tiles[tileBatch->current];
-    tileBatch->current++;
+    Tile *tile = tileBatch->tiles[currentTile];
     return tile;
 }
 

@@ -13,11 +13,11 @@
 
 typedef struct Gpkg
 {
-    char *path;
-    char *tileCache;
     int minZoom;
     int maxZoom;
-    int current;
+    long current;
+    char *path;
+    char *tileCache;
 } Gpkg;
 
 Gpkg *readGpkgInfo(char *path);

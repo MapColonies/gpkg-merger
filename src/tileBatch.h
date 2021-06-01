@@ -10,9 +10,10 @@
 
 typedef struct TileBatch
 {
-    Tile **tiles;
-    atomic_int current;
+    int current;
+    // atomic_int current;
     int size;
+    Tile **tiles;
 } TileBatch;
 
 TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current);
