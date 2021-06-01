@@ -1,5 +1,4 @@
 #include "tileBatch.h"
-#include "ImageWand/upscaling.h"
 
 #define QUERY_SIZE 500
 

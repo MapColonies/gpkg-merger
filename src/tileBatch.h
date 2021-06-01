@@ -7,6 +7,7 @@
 #include <stdatomic.h>
 #include "tile.h"
 #include "statement.h"
+#include "ImageWand/upscaling.h"
 
 typedef struct TileBatch
 {
