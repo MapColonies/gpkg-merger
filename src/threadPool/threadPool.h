@@ -183,5 +183,3 @@ int thpool_num_threads_working(threadpool);
 #ifdef __cplusplus
 }
 #endif
-
-#endif
