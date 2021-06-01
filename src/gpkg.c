@@ -276,7 +276,6 @@ void work(void **args)
     int count = 0;
     int size = 0;
 
-    printf("SIZE: %d, TILEBATCH->CURRENT: %d, TILEBATCH->SIZE: %d, BASETILEBATCH->CURRENT: %d\n", *batchSize, tileBatch->current, tileBatch->size, baseTileBatch->current);
 
     mergeTileBatch(tileBatch, baseTileBatch);
 
@@ -378,8 +377,9 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
         pthread_mutex_unlock(&insertTileLock);
 
         void *args[] = {baseTileBatch, tileBatch, baseGpkg->path, baseGpkg->tileCache, &size};
-        thpool_add_work(threadPool, work, args);
-        // work(args);
+        // TODO: FIX THREADS 
+        // thpool_add_work(threadPool, work, args);
+        work(args);
     }
 
     sqlite3_close(newDb);

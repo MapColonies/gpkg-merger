@@ -50,7 +50,6 @@ Tile *bindParametersToQueryAndExecute(sqlite3 *db, char *query, int coords[])
     {
         fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
     }
-    // printf("%s\n", sqlite3_expanded_sql(res));
     int step = sqlite3_step(res);
     if (step == SQLITE_ROW)
     {
@@ -89,10 +88,7 @@ Tile *getLastExistingTile(int x, int y, int zoomLevel, sqlite3 *db, char *tableN
         coords[arrayIterator] = baseTileX;
         coords[arrayIterator + 1] = baseTileY;
     }
-
-    // for (int i = 0; i < X_Y_COORDS_FOR_ALL_ZOOM_LEVELS; i++)
-    //     printf("%d\n", coords[i]);
-
+    
     char query[SQL_QUERY_SIZE] = "";
     lastTileSQLQuery(query, tableName);
 

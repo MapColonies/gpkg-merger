@@ -41,19 +41,11 @@ Tile **getNextBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
     char *batchSelectQuery = getBatchSelectQuery(tileCache, current, batchSize);
     sqlite3_stmt *stmt = prepareStatement(db, batchSelectQuery);
 
-    // while (sqlite3_step(stmt) == SQLITE_ROW)
-    // {
-    //     tiles[i] = createTile(sqlite3_column_int(stmt, 0), sqlite3_column_int(stmt, 1),
-    //                           sqlite3_column_int(stmt, 2), strdup(sqlite3_column_blob(stmt, 3)),
-    //                           sqlite3_column_int(stmt, 4));
-    //     i++;
-    // }
     do
     {
         tiles[i] = executeTileStatement(stmt);
         i++;
     } while (i < batchSize && tiles[i - 1] != NULL);
-    printf("ENDED IN: %d\n", i);
 
     free(batchSelectQuery);
     finalizeStatement(stmt);
@@ -78,7 +70,6 @@ TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current
     tileBatch->size = i;
     tileBatch->current = 0;
 
-    printf("HERE2\n");
     return tileBatch;
 }
 
