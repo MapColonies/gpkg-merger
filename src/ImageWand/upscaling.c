@@ -49,6 +49,7 @@ Tile *bindParametersToQueryAndExecute(sqlite3 *db, char *query, int coords[])
     else
     {
         fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+        return NULL;
     }
     int step = sqlite3_step(res);
     if (step == SQLITE_ROW)
@@ -60,12 +61,10 @@ Tile *bindParametersToQueryAndExecute(sqlite3 *db, char *query, int coords[])
         lastTile->blob = strdup(sqlite3_column_blob(res, 3));
         lastTile->blobSize = strlen(lastTile->blob);
     }
-    else
+    else if (step != SQLITE_DONE)
     {
-        if (step != SQLITE_DONE)
-        {
             fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
-        }
+            return NULL;
     }
     sqlite3_finalize(res);
     return lastTile;

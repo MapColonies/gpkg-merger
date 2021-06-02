@@ -12,7 +12,6 @@
 typedef struct TileBatch
 {
     int current;
-    // atomic_int current;
     int size;
     Tile **tiles;
 } TileBatch;
