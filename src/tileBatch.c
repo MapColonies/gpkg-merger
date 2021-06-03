@@ -76,11 +76,16 @@ TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCa
 {
     TileBatch *newTileBatch = (TileBatch *)malloc(sizeof(TileBatch));
     Tile **tiles = (Tile **)malloc(tileBatch->size * sizeof(Tile *));
-
     for (int i = 0; i < tileBatch->size; i++)
     {
-        Tile *baseTile = getNextTile(tileBatch);
-        tiles[i] = getTile(db, tileCache, baseTile->z, baseTile->x, baseTile->y);
+        Tile *newTile = getNextTile(tileBatch);
+        Tile *baseTile = getTile(db, tileCache, newTile->z, newTile->x, newTile->y);
+
+        if (baseTile == NULL)
+        {
+            baseTile = getLastExistingTile(newTile->x, newTile->y, newTile->z, db, tileCache);
+        }
+        tiles[i] = baseTile;
     }
 
     newTileBatch->tiles = tiles;
@@ -92,14 +97,15 @@ TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, char *tileCa
 
 Tile *getNextTile(TileBatch *tileBatch)
 {
+    unsigned int currentTile = __atomic_fetch_add(&(tileBatch->current), 1, __ATOMIC_SEQ_CST);
+
     // If we are at the end of the batch
-    if (tileBatch->current == tileBatch->size)
+    if (currentTile == tileBatch->size)
     {
         return NULL;
     }
 
-    Tile *tile = tileBatch->tiles[tileBatch->current];
-    tileBatch->current++;
+    Tile *tile = tileBatch->tiles[currentTile];
     return tile;
 }
 

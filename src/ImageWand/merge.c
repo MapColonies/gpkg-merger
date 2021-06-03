@@ -1,85 +1,37 @@
 #include "merge.h"
-#define ThrowWandException(wand)                                                          \
-    {                                                                                     \
-        char                                                                              \
-            *description;                                                                 \
-                                                                                          \
-        ExceptionType                                                                     \
-            severity;                                                                     \
-                                                                                          \
-        description = MagickGetException(wand, &severity);                                \
-        (void)fprintf(stderr, "%s %s %lu, reason: %s\n", GetMagickModule(), description); \
-        description = (char *)MagickRelinquishMemory(description);                        \
-        exit(-1);                                                                         \
-    }
 
-MagickBooleanType wandHasAlpha(MagickWand *wand)
+char *mergeNewToBase(Tile *new, Tile *lastExistingTile)
 {
-    return MagickGetImageAlphaChannel(wand) == MagickTrue;
-}
-
-unsigned char *hexToByteArray(unsigned char *hex)
-{
-    size_t length = strlen(hex);
-    char *position = hex;
-    size_t byteArrayLength = length / 2;
-    unsigned char *byteArray = (unsigned char *)malloc((byteArrayLength + 1) * sizeof(unsigned char));
-    for (size_t count = 0; count < byteArrayLength; count++)
+    MagickWand *newWand = NewMagickWand(), *baseUpscaled;
+    char *hexReturn;
+    createWandFromHex(newWand, new->blob);
+    if (wandHasAlpha(newWand))
     {
-        sscanf(position, "%2hhx", &byteArray[count]);
-        position += 2;
-    }
-    byteArray[byteArrayLength] = '0';
-    return byteArray;
-}
-
-void createWandFromHex(MagickWand *wand, unsigned char *hex)
-{
-    unsigned char *byteArray;
-    byteArray = hexToByteArray(hex);
-    MagickBooleanType status = MagickReadImageBlob(wand, byteArray, strlen(hex) / 2 + 1);
-    free(byteArray);
-    if (status == MagickFalse)
-        ThrowWandException(wand);
-}
-
-unsigned char *hexFromWand(MagickWand *wand)
-{
-    size_t length;
-    unsigned char *blob = MagickGetImageBlob(wand, &length);
-    unsigned char *pos = (unsigned char *)malloc((length * 2 + 1) * sizeof(unsigned char));
-    int i;
-    for (i = 0; i < length; i++)
-    {
-        sprintf(pos + (i * 2), "%02x", blob[i]);
-    }
-    free(blob);
-    return pos;
-}
-
-unsigned char *merge(char *firstImageHex, char *secondImageHex)
-{
-    MagickWand *secondWand;
-    unsigned char *hexReturn;
-    secondWand = NewMagickWand();
-    createWandFromHex(secondWand, secondImageHex);
-    if (wandHasAlpha(secondWand))
-    {
-        // Image has transparency - we need to composite tiles.
-        MagickWand *firstWand = NewMagickWand();
-        MagickBooleanType status;
-        createWandFromHex(firstWand, firstImageHex);
-        status = MagickCompositeImage(firstWand, secondWand, OverCompositeOp, MagickFalse, 0, 0);
-        if (status == MagickFalse)
-            ThrowWandException(firstWand);
-        hexReturn = hexFromWand(firstWand);
-        firstWand = DestroyMagickWand(firstWand);
+        baseUpscaled = NewMagickWand();
+        createWandFromHex(baseUpscaled, lastExistingTile->blob);
+        if (lastExistingTile->z != new->z)
+        {
+            upscale(baseUpscaled, lastExistingTile, new->z, new->x, new->y);
+        }
+        hexReturn = mergeWands(baseUpscaled, newWand);
+        baseUpscaled = DestroyMagickWand(baseUpscaled);
     }
     else
     {
-        // Image has no transparency - it is full. Return it.
-        hexReturn = secondImageHex;
+        hexReturn = new->blob;
     }
-    secondWand = DestroyMagickWand(secondWand);
+
+    newWand = DestroyMagickWand(newWand);
     return hexReturn;
 }
+
+char *mergeWands(MagickWand *base, MagickWand *new)
+{
+    MagickBooleanType status;
+    status = MagickCompositeImage(base, new, OverCompositeOp, MagickFalse, 0, 0);
+    if (status == MagickFalse)
+        handleError("Could not composite two wands", base);
+
+    return hexFromWand(base);
+}
+

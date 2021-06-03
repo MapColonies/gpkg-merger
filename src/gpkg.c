@@ -236,8 +236,7 @@ void mergeTileBatch(TileBatch *tileBatch, TileBatch *baseTileBatch)
         // Merge tiles if tile exists in base gpkg
         if (baseTile != NULL)
         {
-            char *blob = merge(baseTile->blob, tile->blob);
-
+            char *blob = mergeNewToBase(tile, baseTile);
             // If returned blob is not same blob (merge was required)
             if (tile->blob != blob)
             {
@@ -272,6 +271,7 @@ void work(void **args)
     TileBatch *tileBatch = (TileBatch *)args[1];
     char *baseGpkgPath = (char *)args[2];
     char *tileCache = (char *)args[3];
+    int *batchSize = (int *)args[4];
 
     int count = 0;
     int size = 0;
@@ -354,14 +354,13 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
     int size = 0;
 
     pthread_mutex_init(&insertTileLock, NULL);
-    tpool_t *threadPool = tpool_create(5);
+    threadpool threadPool = thpool_init(1);
 
     int amount = countAll / batchSize;
     if (countAll % batchSize != 0)
     {
         amount++;
     }
-
     for (int i = 0; i < amount; i++)
     {
         TileBatch *tileBatch = getTileBatch(newDb, newGpkg->tileCache, batchSize, newGpkg->current);
@@ -376,13 +375,14 @@ void mergeGpkgs(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
         sqlite3_close(baseDb);
         pthread_mutex_unlock(&insertTileLock);
 
-        void *args[] = {baseTileBatch, tileBatch, baseGpkg->path, baseGpkg->tileCache};
-        tpool_add_work(threadPool, work, args);
+        void *args[] = {baseTileBatch, tileBatch, baseGpkg->path, baseGpkg->tileCache, &size};
+        // TODO: FIX THREADS 
+        thpool_add_work(threadPool, work, args);
     }
 
     sqlite3_close(newDb);
-    tpool_wait(threadPool);
-    tpool_destroy(threadPool);
+    thpool_wait(threadPool);
+    thpool_destroy(threadPool);
     pthread_mutex_destroy(&insertTileLock);
 
     // Add tile index
@@ -404,5 +404,5 @@ void printGpkgInfo(Gpkg *gpkg)
     printf("Path: %s\n", gpkg->path);
     printf("Min zoom: %d\n", gpkg->minZoom);
     printf("Max zoom: %d\n", gpkg->maxZoom);
-    printf("Current position: %d\n", gpkg->current);
+    printf("Current position: %ld\n", gpkg->current);
 }

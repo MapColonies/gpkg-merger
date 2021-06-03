@@ -59,7 +59,8 @@ int main(int argc, char **argv)
 
     MagickWandGenesis();
     // Merge gpkgs
-    mergeGpkgs(baseGpkg, newGpkg, batchSize);
+    mergeGpkgsNoThreads(baseGpkg, newGpkg, batchSize);
+    // mergeGpkgs(baseGpkg, newGpkg, batchSize);
     MagickWandTerminus();
 
     // Close gpkgs

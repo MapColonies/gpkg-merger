@@ -11,8 +11,8 @@ typedef struct Tile
     int z;
     int x;
     int y;
-    char *blob;
     int blobSize;
+    char *blob;
 } Tile;
 
 Tile *createTile(int z, int x, int y, char *blob, int blobSize);

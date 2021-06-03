@@ -19,6 +19,6 @@ WORKDIR /opt/gpkg-merger
 
 COPY ./src /opt/gpkg-merger
 
-RUN gcc main.c gpkg.h gpkg.c tileBatch.h tileBatch.c tile.h tile.c statement.h statement.c ImageWand/merge.h ImageWand/merge.c -lsqlite3 $(pkg-config --cflags --libs MagickWand) -o gpkg-merger
+RUN make build-gpkg-merger
 
 CMD ["./gpkg-merger"]

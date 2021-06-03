@@ -7,12 +7,13 @@
 #include <stdatomic.h>
 #include "tile.h"
 #include "statement.h"
+#include "ImageWand/upscaling.h"
 
 typedef struct TileBatch
 {
-    Tile **tiles;
-    atomic_int current;
+    int current;
     int size;
+    Tile **tiles;
 } TileBatch;
 
 TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current);
