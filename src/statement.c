@@ -51,24 +51,6 @@ char *executeStatementSingleColResult(sqlite3 *db, sqlite3_stmt *stmt, int final
     return res;
 }
 
-char *getBlobSizeQuery(char *tileCache, int z, int x, int y)
-{
-    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
-    sprintf(sql, "SELECT length(hex(tile_data)) FROM %s where zoom_level=%d and tile_column=%d and tile_row=%d", tileCache, z, x, y);
-    return sql;
-}
-
-int getBlobSize(sqlite3 *db, char *tileCache, int z, int x, int y)
-{
-    char *query = getBlobSizeQuery(tileCache, z, x, y);
-    char *res = executeQuerySingleColResult(db, query);
-    int size = atoi(res);
-
-    free(res);
-    free(query);
-    return size;
-}
-
 sqlite3_stmt *getBatchSelectStmt(sqlite3 *db, char *tileCache)
 {
     char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
@@ -83,4 +65,40 @@ void bindBatchSelect(sqlite3_stmt *stmt, int limit, int offset)
     sqlite3_reset(stmt);
     sqlite3_bind_int(stmt, 1, limit);
     sqlite3_bind_int(stmt, 2, offset);
+}
+
+sqlite3_stmt *getTileSelectStmt(sqlite3 *db, char *tileCache)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "SELECT hex(tile_data) FROM %s where zoom_level=? and tile_column=? and tile_row=?", tileCache);
+    sqlite3_stmt *stmt = prepareStatement(db, sql, SQLITE_PREPARE_PERSISTENT);
+    free(sql);
+    return stmt;
+}
+
+void bindTileSelect(sqlite3_stmt *stmt, int x, int y, int z)
+{
+    sqlite3_reset(stmt);
+    sqlite3_bind_int(stmt, 1, z);
+    sqlite3_bind_int(stmt, 2, x);
+    sqlite3_bind_int(stmt, 3, y);
+}
+
+sqlite3_stmt *getBlobSizeStmt(sqlite3 *db, char *tileCache)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "SELECT length(hex(tile_data)) FROM %s where zoom_level=? and tile_column=? and tile_row=?", tileCache);
+    sqlite3_stmt *stmt = prepareStatement(db, sql, SQLITE_PREPARE_PERSISTENT);
+    free(sql);
+    return stmt;
+}
+
+int getBlobSize(sqlite3 *db, sqlite3_stmt *stmt, char *tileCache, int z, int x, int y)
+{
+    bindTileSelect(stmt, x, y, z);
+    char *res = executeStatementSingleColResult(db, stmt, 0);
+    int size = atoi(res);
+
+    free(res);
+    return size;
 }

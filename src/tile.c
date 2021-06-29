@@ -4,7 +4,6 @@
 
 char *getTileSelectQuery(char *tileCache, int z, int x, int y)
 {
-    // char prefix[] = "SELECT zoom_level, tile_column, tile_row, hex(tile_data) FROM ";
     char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "SELECT hex(tile_data) FROM %s where zoom_level=%d and tile_column=%d and tile_row=%d", tileCache, z, x, y);
     return sql;
@@ -21,7 +20,7 @@ Tile *createTile(int z, int x, int y, char *blob, int blobSize)
     return tile;
 }
 
-Tile *getTile(sqlite3 *db, char *tileCache, int z, int x, int y)
+Tile *getTile(sqlite3 *db, sqlite3_stmt *getTileStmt, char *tileCache, int z, int x, int y)
 {
     char *query = getTileSelectQuery(tileCache, z, x, y);
     char *blob = executeQuerySingleColResult(db, query);
@@ -32,7 +31,7 @@ Tile *getTile(sqlite3 *db, char *tileCache, int z, int x, int y)
         return NULL;
     }
 
-    int blobSize = getBlobSize(db, tileCache, z, x, y);
+    int blobSize = getBlobSize(db, getTileStmt, tileCache, z, x, y);
     Tile *tile = createTile(z, x, y, blob, blobSize);
     return tile;
 }

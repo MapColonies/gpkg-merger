@@ -330,6 +330,7 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
     }
 
     sqlite3_stmt *getBatchStmt = getBatchSelectStmt(newDb, newGpkg->tileCache);
+    sqlite3_stmt *getTileStmt = getBlobSizeStmt(baseDb, baseGpkg->tileCache);
 
     for (int i = 0; i < amount; i++)
     {
@@ -338,7 +339,7 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
         count += size;
         newGpkg->current = count;
 
-        TileBatch *baseTileBatch = getCorrespondingBatch(tileBatch, baseDb, baseGpkg->tileCache);
+        TileBatch *baseTileBatch = getCorrespondingBatch(tileBatch, baseDb, getTileStmt, baseGpkg->tileCache);
 
         mergeTileBatch(tileBatch, baseTileBatch);
         insertTileBatch(tileBatch, baseDb, baseGpkg->tileCache);
@@ -349,6 +350,7 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
         printf("Merged %d/%d tiles\n", count, countAll);
     }
     finalizeStatement(getBatchStmt);
+    finalizeStatement(getTileStmt);
     sqlite3_close(baseDb);
     sqlite3_close(newDb);
 
