@@ -63,8 +63,8 @@ Tile *bindParametersToQueryAndExecute(sqlite3 *db, char *query, int coords[])
     }
     else if (step != SQLITE_DONE)
     {
-            fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
-            return NULL;
+        fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+        return NULL;
     }
     sqlite3_finalize(res);
     return lastTile;
@@ -87,7 +87,7 @@ Tile *getLastExistingTile(int x, int y, int zoomLevel, sqlite3 *db, char *tableN
         coords[arrayIterator] = baseTileX;
         coords[arrayIterator + 1] = baseTileY;
     }
-    
+
     char query[SQL_QUERY_SIZE] = "";
     lastTileSQLQuery(query, tableName);
 
@@ -108,7 +108,6 @@ void upscale(MagickWand *baseWand, Tile *baseTile, int newZoomLevel, int newX, i
         yOffset = newY % tileScale,
         targetWidth = TILE_WIDTH / tileScale,
         targetHeight = TILE_HEIGHT / tileScale;
-
 
     status = MagickCropImage(baseWand, targetWidth, targetHeight, xOffset * targetWidth, yOffset * targetHeight);
     if (status == MagickFalse)

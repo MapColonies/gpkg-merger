@@ -2,11 +2,11 @@
 
 #define QUERY_SIZE 500
 
-sqlite3_stmt *prepareStatement(sqlite3 *db, char *query)
+sqlite3_stmt *prepareStatement(sqlite3 *db, char *query, int flags)
 {
     sqlite3_stmt *stmt;
 
-    int rc = sqlite3_prepare_v2(db, query, -1, &stmt, 0);
+    int rc = sqlite3_prepare_v3(db, query, -1, flags, &stmt, 0);
     if (rc != SQLITE_OK)
     {
         fprintf(stderr, "Failed to execute query: %s, error message: %s\n", query, sqlite3_errmsg(db));
@@ -22,10 +22,15 @@ void finalizeStatement(sqlite3_stmt *stmt)
     sqlite3_finalize(stmt);
 }
 
-char *executeStatementSingleColResult(sqlite3 *db, char *query)
+char *executeQuerySingleColResult(sqlite3 *db, char *query)
+{
+    sqlite3_stmt *stmt = prepareStatement(db, query, 0);
+    return executeStatementSingleColResult(db, stmt, 1);
+}
+
+char *executeStatementSingleColResult(sqlite3 *db, sqlite3_stmt *stmt, int finalize)
 {
     unsigned char *res = NULL;
-    sqlite3_stmt *stmt = prepareStatement(db, query);
 
     int rc = sqlite3_step(stmt);
     if (rc == SQLITE_ROW)
@@ -38,7 +43,11 @@ char *executeStatementSingleColResult(sqlite3 *db, char *query)
         printf("Error in sqlite: %s\n", sqlite3_errmsg(db));
     }
 
-    sqlite3_finalize(stmt);
+    if (finalize)
+    {
+        sqlite3_finalize(stmt);
+    }
+
     return res;
 }
 
@@ -52,7 +61,7 @@ char *getBlobSizeQuery(char *tileCache, int z, int x, int y)
 int getBlobSize(sqlite3 *db, char *tileCache, int z, int x, int y)
 {
     char *query = getBlobSizeQuery(tileCache, z, x, y);
-    char *res = executeStatementSingleColResult(db, query);
+    char *res = executeQuerySingleColResult(db, query);
     int size = atoi(res);
 
     free(res);

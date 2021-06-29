@@ -38,7 +38,7 @@ Tile **getNextBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
     int i = 0;
 
     char *batchSelectQuery = getBatchSelectQuery(tileCache, current, batchSize);
-    sqlite3_stmt *stmt = prepareStatement(db, batchSelectQuery);
+    sqlite3_stmt *stmt = prepareStatement(db, batchSelectQuery, 0);
 
     do
     {
