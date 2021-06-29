@@ -68,3 +68,19 @@ int getBlobSize(sqlite3 *db, char *tileCache, int z, int x, int y)
     free(query);
     return size;
 }
+
+sqlite3_stmt *getBatchSelectStmt(sqlite3 *db, char *tileCache)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "SELECT zoom_level, tile_column, tile_row, hex(tile_data), length(hex(tile_data)) as blob_size FROM %s limit ? offset ?", tileCache);
+    sqlite3_stmt *stmt = prepareStatement(db, sql, SQLITE_PREPARE_PERSISTENT);
+    free(sql);
+    return stmt;
+}
+
+void bindBatchSelect(sqlite3_stmt *stmt, int limit, int offset)
+{
+    sqlite3_reset(stmt);
+    sqlite3_bind_int(stmt, 1, limit);
+    sqlite3_bind_int(stmt, 2, offset);
+}

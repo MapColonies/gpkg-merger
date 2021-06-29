@@ -31,4 +31,8 @@ void finalizeStatement(sqlite3_stmt *stmt);
 
 int getBlobSize(sqlite3 *db, char *tileCache, int z, int x, int y);
 
+sqlite3_stmt *getBatchSelectStmt(sqlite3 *db, char *tileCache);
+
+void bindBatchSelect(sqlite3_stmt *stmt, int limit, int offset);
+
 #endif // STATEMENT_H_

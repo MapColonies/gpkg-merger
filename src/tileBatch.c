@@ -32,30 +32,65 @@ char *getBatchSelectQuery(char *tileCache, int currentOffset, int batchSize)
     return sql;
 }
 
-Tile **getNextBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
+// Tile **getNextBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
+// {
+//     Tile **tiles = (Tile **)malloc(batchSize * sizeof(Tile *));
+//     int i = 0;
+
+//     char *batchSelectQuery = getBatchSelectQuery(tileCache, current, batchSize);
+//     sqlite3_stmt *stmt = prepareStatement(db, batchSelectQuery, 0);
+
+//     do
+//     {
+//         tiles[i] = executeTileStatement(stmt);
+//         i++;
+//     } while (i < batchSize && tiles[i - 1] != NULL);
+
+//     free(batchSelectQuery);
+//     finalizeStatement(stmt);
+
+//     return tiles;
+// }
+
+Tile **getNextBatch(sqlite3_stmt *stmt, int batchSize, int current)
 {
     Tile **tiles = (Tile **)malloc(batchSize * sizeof(Tile *));
     int i = 0;
 
-    char *batchSelectQuery = getBatchSelectQuery(tileCache, current, batchSize);
-    sqlite3_stmt *stmt = prepareStatement(db, batchSelectQuery, 0);
-
+    bindBatchSelect(stmt, batchSize, current);
     do
     {
         tiles[i] = executeTileStatement(stmt);
         i++;
     } while (i < batchSize && tiles[i - 1] != NULL);
 
-    free(batchSelectQuery);
-    finalizeStatement(stmt);
-
     return tiles;
 }
 
-TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
+// TileBatch *getTileBatch(sqlite3 *db, char *tileCache, int batchSize, int current)
+// {
+//     TileBatch *tileBatch = (TileBatch *)malloc(sizeof(TileBatch));
+//     Tile **tiles = getNextBatch(db, tileCache, batchSize, current);
+//     int i = 0;
+
+//     tileBatch->tiles = tiles;
+
+//     // Determine amount of tiles in batch
+//     while (i < batchSize && tiles[i] != NULL)
+//     {
+//         i++;
+//     }
+
+//     tileBatch->size = i;
+//     tileBatch->current = 0;
+
+//     return tileBatch;
+// }
+
+TileBatch *getTileBatch(sqlite3_stmt *stmt, int batchSize, int current)
 {
     TileBatch *tileBatch = (TileBatch *)malloc(sizeof(TileBatch));
-    Tile **tiles = getNextBatch(db, tileCache, batchSize, current);
+    Tile **tiles = getNextBatch(stmt, batchSize, current);
     int i = 0;
 
     tileBatch->tiles = tiles;
