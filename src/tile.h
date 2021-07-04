@@ -22,13 +22,14 @@ Tile *createTile(int z, int x, int y, char *blob, int blobSize);
  * 
  * @param db database to query
  * @param getTileStmt get tile statement
+ * @param getBlobSizeStmt get blob size statement
  * @param tileCache table to query
  * @param z z value
  * @param x z value
  * @param y y value
  * @return Tile* 
  */
-Tile *getTile(sqlite3 *db, sqlite3_stmt *getTileStmt, char *tileCache, int z, int x, int y);
+Tile *getTile(sqlite3 *db, sqlite3_stmt *getTileStmt, sqlite3_stmt *getBlobSizeStmt, char *tileCache, int z, int x, int y);
 
 void printTile(Tile *tile);
 

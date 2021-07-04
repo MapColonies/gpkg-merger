@@ -33,7 +33,11 @@ int getBlobSize(sqlite3 *db, sqlite3_stmt *stmt, char *tileCache, int z, int x, 
 
 sqlite3_stmt *getBatchSelectStmt(sqlite3 *db, char *tileCache);
 
-sqlite3_stmt *getBlobSizeStmt(sqlite3 *db, char *tileCache);
+sqlite3_stmt *getBlobSizeSelectStmt(sqlite3 *db, char *tileCache);
+
+sqlite3_stmt *getTileSelectStmt(sqlite3 *db, char *tileCache);
+
+void bindTileSelect(sqlite3_stmt *stmt, int x, int y, int z);
 
 void bindBatchSelect(sqlite3_stmt *stmt, int limit, int offset);
 

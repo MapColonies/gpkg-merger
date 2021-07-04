@@ -18,7 +18,7 @@ typedef struct TileBatch
 
 TileBatch *getTileBatch(sqlite3_stmt *stmt, int batchSize, int current);
 
-TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, sqlite3_stmt *getTileStmt, char *tileCache);
+TileBatch *getCorrespondingBatch(TileBatch *tileBatch, sqlite3 *db, sqlite3_stmt *getTileStmt, sqlite3_stmt *getBlobSizeStmt, char *tileCache);
 
 /**
  * @brief Get the Next Tile object

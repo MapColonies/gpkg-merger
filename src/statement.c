@@ -84,7 +84,7 @@ void bindTileSelect(sqlite3_stmt *stmt, int x, int y, int z)
     sqlite3_bind_int(stmt, 3, y);
 }
 
-sqlite3_stmt *getBlobSizeStmt(sqlite3 *db, char *tileCache)
+sqlite3_stmt *getBlobSizeSelectStmt(sqlite3 *db, char *tileCache)
 {
     char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
     sprintf(sql, "SELECT length(hex(tile_data)) FROM %s where zoom_level=? and tile_column=? and tile_row=?", tileCache);
