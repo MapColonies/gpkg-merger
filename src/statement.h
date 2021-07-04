@@ -29,6 +29,8 @@ char *executeStatementSingleColResult(sqlite3 *db, sqlite3_stmt *stmt, int final
 
 void finalizeStatement(sqlite3_stmt *stmt);
 
+void vacuum(sqlite3 *db);
+
 int getBlobSize(sqlite3 *db, sqlite3_stmt *stmt, char *tileCache, int z, int x, int y);
 
 sqlite3_stmt *getBatchSelectStmt(sqlite3 *db, char *tileCache);

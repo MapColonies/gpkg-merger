@@ -22,6 +22,14 @@ void finalizeStatement(sqlite3_stmt *stmt)
     sqlite3_finalize(stmt);
 }
 
+void vacuum(sqlite3 *db)
+{
+    printf("Vacuuming base DB\n");
+    char *res = executeQuerySingleColResult(db, "vacuum");
+    free(res);
+    printf("Done vacuuming base DB\n");
+}
+
 char *executeQuerySingleColResult(sqlite3 *db, char *query)
 {
     sqlite3_stmt *stmt = prepareStatement(db, query, 0);

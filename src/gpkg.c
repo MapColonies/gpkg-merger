@@ -307,6 +307,16 @@ void work(void **args)
     freeBatch(tileBatch);
 }
 
+int getVacuumCount()
+{
+    char *vacuumCount = getenv("VACUUM_COUNT");
+    if (vacuumCount)
+    {
+        return atoi(vacuumCount);
+    }
+    return 4000000;
+}
+
 void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
 {
     sqlite3 *baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);
@@ -334,11 +344,13 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
     sqlite3_stmt *getBlobSizeStmt = getBlobSizeSelectStmt(baseDb, baseGpkg->tileCache);
     sqlite3_stmt *getTileStmt = getTileSelectStmt(baseDb, baseGpkg->tileCache);
 
+    int tilesUntilVacuum = getVacuumCount();
     for (int i = 0; i < amount; i++)
     {
         TileBatch *tileBatch = getTileBatch(getBatchStmt, batchSize, newGpkg->current);
         size = tileBatch->size;
         count += size;
+        tilesUntilVacuum -= size;
         newGpkg->current = count;
 
         TileBatch *baseTileBatch = getCorrespondingBatch(tileBatch, baseDb, getTileStmt, getBlobSizeStmt, baseGpkg->tileCache);
@@ -350,10 +362,18 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
         freeBatch(tileBatch);
 
         printf("Merged %d/%d tiles\n", count, countAll);
+
+        // Check if should vacuum target DB
+        if (tilesUntilVacuum <= 0)
+        {
+            vacuum(baseDb);
+            tilesUntilVacuum = getVacuumCount();
+        }
     }
     finalizeStatement(getBatchStmt);
     finalizeStatement(getBlobSizeStmt);
     finalizeStatement(getTileStmt);
+    vacuum(baseDb);
     sqlite3_close(baseDb);
     sqlite3_close(newDb);
 
