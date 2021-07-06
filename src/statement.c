@@ -59,6 +59,30 @@ char *executeStatementSingleColResult(sqlite3 *db, sqlite3_stmt *stmt, int final
     return res;
 }
 
+char *getAddIndexQuery(char *tileCache)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "CREATE UNIQUE INDEX IF NOT EXISTS index_tiles on %s (zoom_level, tile_row, tile_column)", tileCache);
+    return sql;
+}
+
+char *getTileCountQuery(char *tileCache)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "SELECT COUNT(*) FROM %s", tileCache);
+    return sql;
+}
+
+sqlite3_stmt *getExtentInsertStmt(sqlite3 *db, Extent *extent)
+{
+    sqlite3_stmt *stmt = prepareStatement(db, "UPDATE gpkg_contents SET min_x=?, max_x=?, min_y=?, max_y=?", 0);
+    sqlite3_bind_double(stmt, 1, extent->minX);
+    sqlite3_bind_double(stmt, 2, extent->maxX);
+    sqlite3_bind_double(stmt, 3, extent->minY);
+    sqlite3_bind_double(stmt, 4, extent->maxY);
+    return stmt;
+}
+
 sqlite3_stmt *getBatchSelectStmt(sqlite3 *db, char *tileCache)
 {
     char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
