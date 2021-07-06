@@ -51,6 +51,7 @@ unsigned char *hexFromWand(MagickWand *wand)
     return pos;
 }
 
-MagickBooleanType wandHasAlpha(MagickWand *wand) {
+MagickBooleanType wandHasAlpha(MagickWand *wand)
+{
     return MagickGetImageAlphaChannel(wand) == MagickTrue;
 }

@@ -55,7 +55,11 @@ sqlite3_stmt *getBlobSizeSelectStmt(sqlite3 *db, char *tileCache);
 
 sqlite3_stmt *getTileSelectStmt(sqlite3 *db, char *tileCache);
 
+sqlite3_stmt *getTileInsertStmt(sqlite3 *db, char *tileCache);
+
 void bindTileSelect(sqlite3_stmt *stmt, int x, int y, int z);
+
+void bindTileInsert(sqlite3_stmt *stmt, int x, int y, int z, char *blob);
 
 void bindBatchSelect(sqlite3_stmt *stmt, int limit, int offset);
 

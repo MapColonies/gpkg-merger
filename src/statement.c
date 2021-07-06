@@ -106,12 +106,30 @@ sqlite3_stmt *getTileSelectStmt(sqlite3 *db, char *tileCache)
     return stmt;
 }
 
+sqlite3_stmt *getTileInsertStmt(sqlite3 *db, char *tileCache)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)", tileCache);
+    sqlite3_stmt *stmt = prepareStatement(db, sql, SQLITE_PREPARE_PERSISTENT);
+    free(sql);
+    return stmt;
+}
+
 void bindTileSelect(sqlite3_stmt *stmt, int x, int y, int z)
 {
     sqlite3_reset(stmt);
     sqlite3_bind_int(stmt, 1, z);
     sqlite3_bind_int(stmt, 2, x);
     sqlite3_bind_int(stmt, 3, y);
+}
+
+void bindTileInsert(sqlite3_stmt *stmt, int x, int y, int z, char *blob)
+{
+    sqlite3_reset(stmt);
+    sqlite3_bind_int(stmt, 1, z);
+    sqlite3_bind_int(stmt, 2, x);
+    sqlite3_bind_int(stmt, 3, y);
+    sqlite3_bind_blob(stmt, 4, blob, -1, NULL);
 }
 
 sqlite3_stmt *getBlobSizeSelectStmt(sqlite3 *db, char *tileCache)
