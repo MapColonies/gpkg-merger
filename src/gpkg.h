@@ -6,6 +6,8 @@
 #include <string.h>
 #include <sqlite3.h>
 #include <pthread.h>
+#include "env.h"
+#include "extent.h"
 #include "tileBatch.h"
 #include "statement.h"
 #include "ImageWand/merge.h"

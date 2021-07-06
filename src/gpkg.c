@@ -1,14 +1,5 @@
 #include "gpkg.h"
 
-#define INSERT_TILE_MATRIX_QUERY "REPLACE INTO gpkg_tile_matrix (table_name, zoom_level, matrix_width, matrix_height, tile_width, tile_height, pixel_x_size, pixel_y_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-#define MIN_ZOOM_QUERY "SELECT MIN(zoom_level) FROM gpkg_tile_matrix"
-#define MAX_ZOOM_QUERY "SELECT MAX(zoom_level) FROM gpkg_tile_matrix"
-#define CACHE_NAME_QUERY "SELECT table_name FROM gpkg_contents"
-#define TILE_MATRIX_QUERY "SELECT * FROM gpkg_tile_matrix"
-#define BASE_ZOOM_QUERY "SELECT zoom_level FROM gpkg_tile_matrix where zoom_level=0 and matrix_width=1 and matrix_height=1"
-#define EXTENT_QUERY "SELECT min_x, min_y, max_x, max_y FROM gpkg_contents"
-#define QUERY_SIZE 500
-
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -24,34 +15,9 @@ typedef struct TileMatrix
     double pixleYSize;
 } TileMatrix;
 
-typedef struct Extent
-{
-    double minX;
-    double minY;
-    double maxX;
-    double maxY;
-} Extent;
-
 pthread_mutex_t insertTileLock;
 int countAll = 0;
 int countTiles = 0;
-
-int max(double num1, double num2)
-{
-    return (num1 > num2) ? num1 : num2;
-}
-
-int min(double num1, double num2)
-{
-    return (num1 > num2) ? num2 : num1;
-}
-
-char *getAddIndexQuery(char *tileCache)
-{
-    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
-    sprintf(sql, "CREATE UNIQUE INDEX IF NOT EXISTS index_tiles on %s (zoom_level, tile_row, tile_column)", tileCache);
-    return sql;
-}
 
 char *getTileInsertQuery(char *tileCache, Tile *tile)
 {
@@ -59,23 +25,6 @@ char *getTileInsertQuery(char *tileCache, Tile *tile)
     char *sql = (char *)malloc(allocationSize * sizeof(char));
     sprintf(sql, "REPLACE INTO %s (zoom_level, tile_column, tile_row, tile_data) VALUES (%d, %d, %d, x'%s')", tileCache, tile->z, tile->x, tile->y, tile->blob);
     return sql;
-}
-
-char *getTileCountQuery(char *tileCache)
-{
-    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
-    sprintf(sql, "SELECT COUNT(*) FROM %s", tileCache);
-    return sql;
-}
-
-sqlite3_stmt *getExtentInsertStmt(sqlite3 *db, Extent *extent)
-{
-    sqlite3_stmt *stmt = prepareStatement(db, "UPDATE gpkg_contents SET min_x=?, max_x=?, min_y=?, max_y=?", 0);
-    sqlite3_bind_double(stmt, 1, extent->minX);
-    sqlite3_bind_double(stmt, 2, extent->maxX);
-    sqlite3_bind_double(stmt, 3, extent->minY);
-    sqlite3_bind_double(stmt, 4, extent->maxY);
-    return stmt;
 }
 
 Extent *getExtent(sqlite3 *db)
@@ -305,16 +254,6 @@ void work(void **args)
     pthread_mutex_unlock(&insertTileLock);
     freeBatch(baseTileBatch);
     freeBatch(tileBatch);
-}
-
-int getVacuumCount()
-{
-    char *vacuumCount = getenv("VACUUM_COUNT");
-    if (vacuumCount)
-    {
-        return atoi(vacuumCount);
-    }
-    return 4000000;
 }
 
 void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
