@@ -2,14 +2,6 @@
 
 #define QUERY_SIZE 500
 
-char *getTileSelectQuery(char *tileCache, int z, int x, int y)
-{
-    // char prefix[] = "SELECT zoom_level, tile_column, tile_row, hex(tile_data) FROM ";
-    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
-    sprintf(sql, "SELECT hex(tile_data) FROM %s where zoom_level=%d and tile_column=%d and tile_row=%d", tileCache, z, x, y);
-    return sql;
-}
-
 Tile *createTile(int z, int x, int y, char *blob, int blobSize)
 {
     Tile *tile = (Tile *)malloc(sizeof(Tile));
@@ -21,18 +13,17 @@ Tile *createTile(int z, int x, int y, char *blob, int blobSize)
     return tile;
 }
 
-Tile *getTile(sqlite3 *db, char *tileCache, int z, int x, int y)
+Tile *getTile(sqlite3 *db, sqlite3_stmt *getTileStmt, sqlite3_stmt *getBlobSizeStmt, char *tileCache, int z, int x, int y)
 {
-    char *query = getTileSelectQuery(tileCache, z, x, y);
-    char *blob = executeStatementSingleColResult(db, query);
-    free(query);
+    bindTileSelect(getTileStmt, x, y, z);
+    char *blob = executeStatementSingleColResult(db, getTileStmt, 0);
 
     if (blob == NULL)
     {
         return NULL;
     }
 
-    int blobSize = getBlobSize(db, tileCache, z, x, y);
+    int blobSize = getBlobSize(db, getBlobSizeStmt, tileCache, z, x, y);
     Tile *tile = createTile(z, x, y, blob, blobSize);
     return tile;
 }
