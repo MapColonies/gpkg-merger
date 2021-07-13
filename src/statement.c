@@ -22,10 +22,10 @@ void finalizeStatement(sqlite3_stmt *stmt)
 
 void vacuum(sqlite3 *db)
 {
-    printf("Vacuuming base DB\n");
+    printf("Vacuuming DB\n");
     char *res = executeQuerySingleColResult(db, "vacuum");
     free(res);
-    printf("Done vacuuming base DB\n");
+    printf("Done vacuuming DB\n");
 }
 
 char *executeQuerySingleColResult(sqlite3 *db, char *query)
@@ -55,6 +55,23 @@ char *executeStatementSingleColResult(sqlite3 *db, sqlite3_stmt *stmt, int final
     }
 
     return res;
+}
+
+int getDBCacheSize(sqlite3 *db)
+{
+    char *res = executeQuerySingleColResult(db, "PRAGMA cache_size");
+    int cacheSize = atoi(res);
+    free(res);
+    return cacheSize;
+}
+
+void setDBCacheSize(sqlite3 *db, int size)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "PRAGMA cache_size=%d", size);
+    char *res = executeQuerySingleColResult(db, sql);
+    free(sql);
+    free(res);
 }
 
 char *getAddIndexQuery(char *tileCache)

@@ -256,6 +256,20 @@ void work(void **args)
     freeBatch(tileBatch);
 }
 
+/**
+ * @brief Prepare db for end of program. Set db cache size, vacuum and close connection.
+ * 
+ * @param db db to finalize
+ * @param originalCacheSize restore db cache_size setting to this value
+ */
+void finalizeDB(sqlite3 *db, int originalCacheSize)
+{
+    printf("Restoring db cache_size to be %d\n", originalCacheSize);
+    setDBCacheSize(db, originalCacheSize);
+    vacuum(db);
+    sqlite3_close(db);
+}
+
 void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
 {
     sqlite3 *baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);
@@ -268,7 +282,7 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
 
     countAll = atoi(countAllString);
     free(tileCountQuery);
-    printf("Working on merging %d tile into base gpkg\n", countAll);
+
     int count = 0;
     int size = 0;
 
@@ -278,12 +292,31 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
         amount++;
     }
 
+    // Close new db and open as read + write
+    sqlite3_close(newDb);
+    newDb = openGpkg(newGpkg->path, SQLITE_OPEN_READWRITE);
+
+    int wantedCacheSize = 100000;
+    printf("Changing DB cache_size to %d\n", wantedCacheSize);
+    int baseCacheSize = getDBCacheSize(baseDb);
+    int newCacheSize = getDBCacheSize(newDb);
+    setDBCacheSize(baseDb, wantedCacheSize);
+    setDBCacheSize(newDb, wantedCacheSize);
+    vacuum(baseDb);
+    vacuum(newDb);
+
+    // Close new db and open as readonly
+    sqlite3_close(newDb);
+    newDb = openGpkg(newGpkg->path, SQLITE_OPEN_READONLY);
+
     // Initialize prepared statements
     sqlite3_stmt *getBatchStmt = getBatchSelectStmt(newDb, newGpkg->tileCache);
     sqlite3_stmt *getBlobSizeStmt = getBlobSizeSelectStmt(baseDb, baseGpkg->tileCache);
     sqlite3_stmt *getTileStmt = getTileSelectStmt(baseDb, baseGpkg->tileCache);
 
     int tilesUntilVacuum = getVacuumCount();
+
+    printf("Working on merging %d tile into base gpkg\n", countAll);
     for (int i = 0; i < amount; i++)
     {
         TileBatch *tileBatch = getTileBatch(getBatchStmt, batchSize, newGpkg->current);
@@ -308,13 +341,20 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
             vacuum(baseDb);
             tilesUntilVacuum = getVacuumCount();
         }
+
+        printf("Cache size: %d\n", getDBCacheSize(baseDb));
     }
     finalizeStatement(getBatchStmt);
     finalizeStatement(getBlobSizeStmt);
     finalizeStatement(getTileStmt);
-    vacuum(baseDb);
-    sqlite3_close(baseDb);
+
+    // Close new db and open as read + write
     sqlite3_close(newDb);
+    newDb = openGpkg(newGpkg->path, SQLITE_OPEN_READWRITE);
+
+    // Finalize DBs
+    finalizeDB(baseDb, baseCacheSize);
+    finalizeDB(newDb, newCacheSize);
 
     // Add tile index
     baseDb = openGpkg(baseGpkg->path, SQLITE_OPEN_READWRITE);

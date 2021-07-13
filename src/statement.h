@@ -43,6 +43,10 @@ void vacuum(sqlite3 *db);
 
 int getBlobSize(sqlite3 *db, sqlite3_stmt *stmt, char *tileCache, int z, int x, int y);
 
+int getDBCacheSize(sqlite3 *db);
+
+void setDBCacheSize(sqlite3 *db, int size);
+
 char *getAddIndexQuery(char *tileCache);
 
 char *getTileCountQuery(char *tileCache);
