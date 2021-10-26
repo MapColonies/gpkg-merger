@@ -6,17 +6,18 @@
 #define X_Y_COORDS_FOR_ALL_ZOOM_LEVELS ZOOM_LEVEL_COUNT << 1 // Multiply by 2
 #define SQL_QUERY_SIZE 2000
 
-void lastTileSQLQuery(char *query, char *tableName)
+void lastTileSQLQuery(char *query, char *tableName, int zoomLevel)
 {
     strcat(query, "SELECT zoom_level, tile_column, tile_row, hex(tile_data) FROM");
     strcat(query, " ");
     strcat(query, tableName);
     strcat(query, " WHERE ");
 
-    for (int currentZoomLevel = 0; currentZoomLevel < ZOOM_LEVEL_COUNT; currentZoomLevel++)
+    const int maxZoomLevel = zoomLevel - 1;
+    for (int currentZoomLevel = 0; currentZoomLevel < zoomLevel; currentZoomLevel++)
     {
         char *sql;
-        if (currentZoomLevel == ZOOM_LEVEL_COUNT - 1)
+        if (currentZoomLevel == maxZoomLevel)
         {
             sql = "(zoom_level = ? AND tile_column = ? AND tile_row = ?) ";
         }
@@ -30,7 +31,7 @@ void lastTileSQLQuery(char *query, char *tableName)
     strcat(query, "ORDER BY zoom_level DESC LIMIT 1");
 }
 
-Tile *bindParametersToQueryAndExecute(sqlite3 *db, char *query, int coords[])
+Tile *bindParametersToQueryAndExecute(sqlite3 *db, char *query, int coords[], int zoomLevel)
 {
     Tile *lastTile = NULL;
     sqlite3_stmt *res;
@@ -38,12 +39,14 @@ Tile *bindParametersToQueryAndExecute(sqlite3 *db, char *query, int coords[])
 
     if (rc == SQLITE_OK)
     {
-        int currentParameter = 1;
-        for (int i = 0; i < X_Y_COORDS_FOR_ALL_ZOOM_LEVELS; i += 2)
+        int currentParameter = 1, arrayIdx;
+        //for (int i = 0; i < X_Y_COORDS_FOR_ALL_ZOOM_LEVELS; i += 2)
+        for (int i = zoomLevel - 1; i >= 0; i--)
         {
-            sqlite3_bind_int(res, currentParameter++, i >> 1); // Divide i by 2
-            sqlite3_bind_int(res, currentParameter++, coords[i]);
-            sqlite3_bind_int(res, currentParameter++, coords[i + 1]);
+            arrayIdx = i << 1; // Multiply by 2
+            sqlite3_bind_int(res, currentParameter++, i);
+            sqlite3_bind_int(res, currentParameter++, coords[arrayIdx]);
+            sqlite3_bind_int(res, currentParameter++, coords[arrayIdx + 1]);
         }
     }
     else
@@ -89,9 +92,9 @@ Tile *getLastExistingTile(int x, int y, int zoomLevel, sqlite3 *db, char *tableN
     }
 
     char query[SQL_QUERY_SIZE] = "";
-    lastTileSQLQuery(query, tableName);
+    lastTileSQLQuery(query, tableName, zoomLevel);
 
-    Tile *lastTile = bindParametersToQueryAndExecute(db, query, coords);
+    Tile *lastTile = bindParametersToQueryAndExecute(db, query, coords, zoomLevel);
 
     return lastTile;
 }
