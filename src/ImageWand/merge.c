@@ -9,6 +9,8 @@ char *mergeNewToBase(Tile *new, Tile *lastExistingTile)
     {
         baseUpscaled = NewMagickWand();
         createWandFromHex(baseUpscaled, lastExistingTile->blob);
+        MagickSetImageFormat(baseUpscaled, "PNG");
+        
         if (lastExistingTile->z != new->z)
         {
             upscale(baseUpscaled, lastExistingTile, new->z, new->x, new->y);
