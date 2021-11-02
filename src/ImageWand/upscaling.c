@@ -5,6 +5,7 @@
 #define ZOOM_LEVEL_COUNT 25
 #define X_Y_COORDS_FOR_ALL_ZOOM_LEVELS ZOOM_LEVEL_COUNT << 1 // Multiply by 2
 #define SQL_QUERY_SIZE 2000
+#define MAX(a, b) ((a) > (b) ? a : b)
 
 void lastTileSQLQuery(char *query, char *tableName, int zoomLevel)
 {
@@ -105,14 +106,20 @@ void upscale(MagickWand *baseWand, Tile *baseTile, int newZoomLevel, int newX, i
     PixelInterpolateMethod filterAlg = BilinearInterpolatePixel;
     MagickBooleanType status;
 
-    int zoomLevelDiff = newZoomLevel - baseTile->z,
-        tileScale = 2 << (zoomLevelDiff - 1), // 2 to the power of (zoomLevelDiff - 1),
-        xOffset = newX % tileScale,
-        yOffset = newY % tileScale,
-        targetWidth = TILE_WIDTH / tileScale,
-        targetHeight = TILE_HEIGHT / tileScale;
+    int zoomLevelDiff = newZoomLevel - baseTile->z;
+    int scale = 1 << zoomLevelDiff;
+    double scaleAsDouble = (double)scale;
 
-    status = MagickCropImage(baseWand, targetWidth, targetHeight, xOffset * targetWidth, yOffset * targetHeight);
+    double tilePartX = (newX % scale) / scaleAsDouble;
+    double tilePartY = (newY % scale) / scaleAsDouble;
+    double tileSize = TILE_HEIGHT / scaleAsDouble;
+
+    int pixelX = (int)(tilePartX * TILE_WIDTH),
+        pixelY = (int)(tilePartY * TILE_HEIGHT),
+        imageWidth = MAX((int)tileSize, 1),
+        imageHeight = MAX((int)tileSize, 1);
+
+    status = MagickCropImage(baseWand, imageWidth, imageHeight, pixelX, pixelY);
     if (status == MagickFalse)
     {
         handleError("Could not crop tile", baseWand);
