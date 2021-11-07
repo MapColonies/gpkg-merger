@@ -64,3 +64,4 @@ compileAndRun.sh
 merge
 a.out
 gpkg-merger
+area*

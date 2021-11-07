@@ -74,6 +74,15 @@ void setDBCacheSize(sqlite3 *db, int size)
     free(res);
 }
 
+void setDBPageSize(sqlite3 *db, int size)
+{
+    char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));
+    sprintf(sql, "PRAGMA page_size=%d", size);
+    char *res = executeQuerySingleColResult(db, sql);
+    free(sql);
+    free(res);
+}
+
 char *getAddIndexQuery(char *tileCache)
 {
     char *sql = (char *)malloc(QUERY_SIZE * sizeof(char));

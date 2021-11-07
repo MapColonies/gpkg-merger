@@ -47,6 +47,8 @@ int getDBCacheSize(sqlite3 *db);
 
 void setDBCacheSize(sqlite3 *db, int size);
 
+void setDBPageSize(sqlite3 *db, int size);
+
 char *getAddIndexQuery(char *tileCache);
 
 char *getTileCountQuery(char *tileCache);

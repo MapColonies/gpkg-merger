@@ -266,6 +266,7 @@ void finalizeDB(sqlite3 *db, int originalCacheSize)
 {
     printf("Restoring db cache_size to be %d\n", originalCacheSize);
     setDBCacheSize(db, originalCacheSize);
+    setDBPageSize(db, 1024);
     vacuum(db);
     sqlite3_close(db);
 }
@@ -302,6 +303,8 @@ void mergeGpkgsNoThreads(Gpkg *baseGpkg, Gpkg *newGpkg, int batchSize)
     int newCacheSize = getDBCacheSize(newDb);
     setDBCacheSize(baseDb, wantedCacheSize);
     setDBCacheSize(newDb, wantedCacheSize);
+    setDBPageSize(baseDb, 8192);
+    setDBPageSize(newDb, 8192);
     vacuum(baseDb);
     vacuum(newDb);
 
